@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portofolio | Rasya Arfian Akbar — Web & Mobile Developer</title>
+  <meta name="description"
+    content="Portofolio profesional Rasya Arfian Akbar, Mahasiswa D3 Manajemen Informatika Politeknik Astra. Pengalaman pengembangan aplikasi mobile, web, UI/UX, dan manajemen database." />
+  <meta name="keywords"
+    content="Rasya Arfian Akbar, portofolio, politeknik astra, web developer, mobile developer, react native, nextjs, bogor" />
+  <meta property="og:title" content="Portofolio | Rasya Arfian Akbar" />
+  <meta property="og:description" content="Web & Mobile Developer — Politeknik Astra, Bogor, Indonesia" />
+  <meta property="og:type" content="website" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <link rel="stylesheet" href="style.css?v=2.4" />
+</head>
+
+<body>
+
+  <!-- TOP SCROLL PROGRESS BAR -->
+  <div class="scroll-progress-track">
+    <div class="scroll-progress-bar" id="scroll-progress"></div>
+  </div>
+
+  <!-- NAVBAR -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-container">
+      <a href="#home" class="nav-logo" id="nav-logo">
+        <span class="logo-bracket">&lt;</span>
+        <span class="logo-name">Rasya.dev</span>
+        <span class="logo-bracket">/&gt;</span>
+      </a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="#about" class="nav-link">Tentang</a></li>
+        <li><a href="#skills" class="nav-link">Keahlian</a></li>
+        <li><a href="#certifications" class="nav-link">Sertifikasi</a></li>
+        <li><a href="#projects" class="nav-link">Proyek</a></li>
+        <li><a href="#timeline" class="nav-link">Timeline</a></li>
+        <li><a href="#contact" class="nav-link">Kontak</a></li>
+      </ul>
+      <div class="nav-actions">
+        <button class="btn-icon-nav" id="cmd-trigger" title="Aksi Cepat (Ctrl + K)" aria-label="Buka Menu Cepat">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <span class="cmd-kbd">Ctrl K</span>
+        </button>
+        <button class="btn-icon-nav" id="theme-toggle" title="Ubah Tema Tampilan" aria-label="Ubah Tema">
+          <i class="fa-solid fa-moon" id="theme-icon"></i>
+        </button>
+        <button class="btn-cv-nav" id="btn-nav-cv" aria-label="Lihat CV">
+          <i class="fa-solid fa-file-pdf"></i> Lihat CV
+        </button>
+        <a href="#contact" class="btn-hire" id="btn-hire">Hubungi Saya</a>
+        <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO SECTION -->
+  <section class="hero" id="home">
+    <div class="hero-bg-overlay"></div>
+    <canvas id="particle-canvas"></canvas>
+    <div class="container hero-container">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span class="badge-dot"></span>
+          Kolaborasi &amp; Kerja
+        </div>
+        <h1 class="hero-title">
+          Halo, Saya <span class="gradient-text">Rasya Arfian Akbar</span>
+        </h1>
+        <div class="hero-typed">
+          <span class="typed-prefix">&gt;_</span>
+          <span id="typed-text"></span><span class="cursor-blink">|</span>
+        </div>
+        <p class="hero-desc">
+          Mahasiswa Manajemen Informatika di Politeknik Astra dengan keahlian dalam pengembangan aplikasi mobile &amp;
+          web,
+          perancangan UI/UX, analisis kebutuhan sistem, dan pengelolaan basis data.
+        </p>
+        <div class="hero-stats">
+          <div class="stat-item">
+            <span class="stat-number" data-target="6">0</span>
+            <span class="stat-label">Proyek Selesai</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-number" data-target="3.31" data-decimal="true">0</span>
+            <span class="stat-label">IPK / GPA</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-number" data-target="10">0</span>
+            <span class="stat-label">Teknologi Dikuasai</span>
+          </div>
+        </div>
+        <div class="hero-cta">
+          <a href="#projects" class="btn-primary magnetic-btn" id="btn-projects">Lihat Proyek <i
+              class="fa-solid fa-arrow-right"></i></a>
+          <button class="btn-outline btn-preview-cv magnetic-btn" id="btn-hero-cv"><i
+              class="fa-solid fa-file-lines"></i> Lihat
+            CV</button>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="profile-ring-container" id="hero-profile-card">
+          <div class="ring ring-1"></div>
+          <div class="ring ring-2"></div>
+          <div class="profile-img-wrapper">
+            <img
+              src="https://dhmabndpzrzacjrtoank.supabase.co/storage/v1/object/public/project-images/Profile%20(1).JPG"
+              onerror="this.onerror=null;this.src='images/profile.jpg';" alt="Foto Rasya Arfian Akbar"
+              class="profile-img" id="profile-img" />
+          </div>
+          <div class="tech-badge badge-1" data-tooltip="React Native & React"><i class="fa-brands fa-react"></i></div>
+          <div class="tech-badge badge-2" data-tooltip="Supabase & SQL Database"><i class="fa-solid fa-database"></i>
+          </div>
+          <div class="tech-badge badge-3" data-tooltip="Python & Django"><i class="fa-brands fa-python"></i></div>
+          <div class="tech-badge badge-4" data-tooltip="Figma UI/UX"><i class="fa-brands fa-figma"></i></div>
+        </div>
+      </div>
+    </div>
+    <a href="#about" class="scroll-indicator" id="scroll-indicator">
+      <span>Scroll</span>
+      <div class="scroll-line"></div>
+    </a>
+  </section>
+
+  <!-- ABOUT SECTION -->
+  <section class="about section" id="about">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Tentang Saya</span>
+        <h2 class="section-title">Profil</h2>
+      </div>
+      <div class="about-grid">
+        <div class="about-image-col">
+          <div class="about-img-frame spotlight-card">
+            <img src="https://dhmabndpzrzacjrtoank.supabase.co/storage/v1/object/public/project-images/Profile.JPG"
+              onerror="this.onerror=null;this.src='images/profile.jpg';" alt="Rasya Arfian Akbar" class="about-img" />
+            <div class="img-decoration"></div>
+          </div>
+          <div class="about-contact-card spotlight-card">
+            <div class="contact-info-row"><i class="fa-solid fa-location-dot"></i><span>Bogor, Indonesia</span></div>
+            <div class="contact-info-row">
+              <i class="fa-solid fa-envelope"></i>
+              <span>rasyaarfiana@gmail.com</span>
+              <button class="btn-copy-inline" onclick="copyText('rasyaarfiana@gmail.com', 'Email')"
+                title="Salin Email"><i class="fa-regular fa-copy"></i></button>
+            </div>
+            <div class="contact-info-row">
+              <i class="fa-solid fa-phone"></i>
+              <span>+62 812-8997-9099</span>
+              <button class="btn-copy-inline" onclick="copyText('+6281289979099', 'Nomor WhatsApp')"
+                title="Salin Nomor WhatsApp"><i class="fa-regular fa-copy"></i></button>
+            </div>
+          </div>
+        </div>
+        <div class="about-text-col">
+          <h3 class="about-name">Rasya Arfian Akbar</h3>
+          <p class="about-role">Mahasiswa Manajemen Informatika · Web &amp; Mobile Developer</p>
+          <p class="about-bio">
+            Mahasiswa Manajemen Informatika di Politeknik Astra yang memiliki pengalaman terkait membangun sebuah
+            aplikasi mobile,
+            web developer, merancang tampilan UI/UX, analisis kebutuhan sistem pada pengembangan aplikasi dan mengelola
+            sistem database.
+          </p>
+          <p class="about-bio">
+            Mahir menggunakan React Native, React.js, Next.js, C, Java, Java Spring Boot, dan Laravel. Memiliki
+            kemampuan
+            bekerja secara individu maupun dalam tim, mendukung komunikasi antar tim yang baik dan menganalisis setiap
+            tugas
+            dengan cermat. Memiliki pengalaman aktif dalam organisasi dan kepanitiaan kampus.
+          </p>
+          <div class="about-details-grid">
+            <div class="detail-item">
+              <span class="detail-label">Nama</span>
+              <span class="detail-value">Rasya Arfian Akbar</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Pendidikan</span>
+              <span class="detail-value">Politeknik Astra (D3 MI)</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">IPK / GPA</span>
+              <span class="detail-value">3.31 / 4.00</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Asal Sekolah</span>
+              <span class="detail-value">SMA Plus PGRI Cibinong (IPA)</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Lokasi</span>
+              <span class="detail-value">Bogor, Jawa Barat</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Status</span>
+              <span class="detail-value available">Tersedia &#10003;</span>
+            </div>
+          </div>
+          <div class="about-socials">
+            <a href="https://www.linkedin.com/in/rasya-arfian-akbar" target="_blank" rel="noopener" class="social-btn"
+              id="social-linkedin" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
+            <a href="https://instagram.com/rasyaarfian" target="_blank" rel="noopener" class="social-btn"
+              id="social-instagram" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+            <a href="mailto:rasyaarfiana@gmail.com" class="social-btn" id="social-email" aria-label="Email"><i
+                class="fa-solid fa-envelope"></i></a>
+            <a href="https://wa.me/6281289979099" target="_blank" rel="noopener" class="social-btn" id="social-whatsapp"
+              aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+          </div>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:20px;">
+            <button class="btn-primary btn-preview-cv magnetic-btn" id="btn-view-cv">
+              <i class="fa-solid fa-file-pdf"></i> Lihat CV
+            </button>
+            <a href="https://dhmabndpzrzacjrtoank.supabase.co/storage/v1/object/public/project-images/CV-Rasya-Arfian-Akbar.pdf"
+              class="btn-outline-blue btn-download-cv magnetic-btn" id="btn-download-cv" target="_blank"
+              download="CV-Rasya-Arfian-Akbar.pdf">
+              <i class="fa-solid fa-download"></i> Download CV
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SKILLS SECTION -->
+  <section class="skills section" id="skills">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Keahlian</span>
+        <h2 class="section-title">Teknologi &amp; Kompetensi</h2>
+        <p class="section-subtitle">Keahlian teknis dan perangkat yang digunakan dalam membangun solusi perangkat lunak.
+        </p>
+      </div>
+      <div class="skills-categories">
+        <!-- Kategori 1: Pemrograman Web, Mobile & Desktop -->
+        <div class="skill-category-card spotlight-card tilt-card">
+          <div class="skill-cat-icon"><i class="fa-solid fa-laptop-code"></i></div>
+          <h3 class="skill-cat-title">Web, Mobile &amp; Desktop</h3>
+          <div class="skill-bars">
+            <div class="skill-bar-item">
+              <div class="skill-bar-header"><span>React Native &amp; React.js</span><span>77%</span></div>
+              <div class="skill-bar-track">
+                <div class="skill-bar-fill" data-width="75"></div>
+              </div>
+            </div>
+            <div class="skill-bar-item">
+              <div class="skill-bar-header"><span>Next.js &amp; JavaScript / HTML / CSS</span><span>80%</span></div>
+              <div class="skill-bar-track">
+                <div class="skill-bar-fill" data-width="86"></div>
+              </div>
+            </div>
+            <div class="skill-bar-item">
+              <div class="skill-bar-header"><span>Java &amp; Java Spring Boot</span><span>79%</span></div>
+              <div class="skill-bar-track">
+                <div class="skill-bar-fill" data-width="82"></div>
+              </div>
+            </div>
+            <div class="skill-bar-item">
+              <div class="skill-bar-header"><span>PHP &amp; Laravel</span><span>80%</span></div>
+              <div class="skill-bar-track">
+                <div class="skill-bar-fill" data-width="80"></div>
+              </div>
+            </div>
+            <div class="skill-bar-item">
+              <div class="skill-bar-header"><span>C &amp; C# / ASP.NET 8.0</span><span>78%</span></div>
+              <div class="skill-bar-track">
+                <div class="skill-bar-fill" data-width="80"></div>
+              </div>
+            </div>
+            <div class="skill-bar-item">
+              <div class="skill-bar-header"><span>Python &amp; Django</span><span>70%</span></div>
+              <div class="skill-bar-track">
+                <div class="skill-bar-fill" data-width="82"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Kategori 2: Basis Data & Backend Cloud -->
+        <div class="skill-category-card spotlight-card tilt-card">
+          <div class="skill-cat-icon"><i class="fa-solid fa-database"></i></div>
+          <h3 class="skill-cat-title">Basis Data &amp; ERP</h3>
+          <div class="skill-bars">
+            <div class="skill-bar-item">
+              <div class="skill-bar-header"><span>SQL Server &amp; MySQL</span><span>75%</span></div>
+              <div class="skill-bar-track">
+                <div class="skill-bar-fill" data-width="88"></div>
+              </div>
+            </div>
+            <div class="skill-bar-item">
+              <div class="skill-bar-header"><span>Oracle SQL Developer</span><span>70%</span></div>
+              <div class="skill-bar-track">
+                <div class="skill-bar-fill" data-width="82"></div>
+              </div>
+            </div>
+            <div class="skill-bar-item">
+              <div class="skill-bar-header"><span>Supabase &amp; PostgreSQL</span><span>70%</span></div>
+              <div class="skill-bar-track">
+                <div class="skill-bar-fill" data-width="86"></div>
+              </div>
+            </div>
+            <div class="skill-bar-item">
+              <div class="skill-bar-header"><span>Qdrant (Vector DB)</span><span>70%</span></div>
+              <div class="skill-bar-track">
+                <div class="skill-bar-fill" data-width="76"></div>
+              </div>
+            </div>
+            <div class="skill-bar-item">
+              <div class="skill-bar-header"><span>MASERP &amp; Sistem ERP</span><span>75%</span></div>
+              <div class="skill-bar-track">
+                <div class="skill-bar-fill" data-width="75"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Kategori 3: Desain, Analisis Data & Tools -->
+        <div class="skill-category-card spotlight-card tilt-card">
+          <div class="skill-cat-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+          <h3 class="skill-cat-title">Desain &amp; Analisis Data</h3>
+          <div class="skill-bars">
+            <div class="skill-bar-item">
+              <div class="skill-bar-header"><span>Figma (UI/UX) &amp; Prototyping</span><span>85%</span></div>
+              <div class="skill-bar-track">
+                <div class="skill-bar-fill" data-width="88"></div>
+              </div>
+            </div>
+            <div class="skill-bar-item">
+              <div class="skill-bar-header"><span>Canva, Draw.io &amp; PixelLab</span><span>90%</span></div>
+              <div class="skill-bar-track">
+                <div class="skill-bar-fill" data-width="85"></div>
+              </div>
+            </div>
+            <div class="skill-bar-item">
+              <div class="skill-bar-header"><span>Power BI &amp; Microsoft Excel</span><span>80%</span></div>
+              <div class="skill-bar-track">
+                <div class="skill-bar-fill" data-width="82"></div>
+              </div>
+            </div>
+            <div class="skill-bar-item">
+              <div class="skill-bar-header"><span>Git / GitHub / GitLab</span><span>75%</span></div>
+              <div class="skill-bar-track">
+                <div class="skill-bar-fill" data-width="88"></div>
+              </div>
+            </div>
+            <div class="skill-bar-item">
+              <div class="skill-bar-header"><span>Postman, SonarQube &amp; NetBeans</span><span>75%</span></div>
+              <div class="skill-bar-track">
+                <div class="skill-bar-fill" data-width="80"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Additional Soft Skills & Languages -->
+      <div class="skills-additional-grid">
+        <div class="skills-extra-card spotlight-card">
+          <h4 class="skills-extra-title"><i class="fa-solid fa-users-gear"></i> Soft Skills</h4>
+          <div class="badges-flow">
+            <span class="soft-badge"><i class="fa-solid fa-user-tie"></i> Kepemimpinan</span>
+            <span class="soft-badge"><i class="fa-solid fa-comments"></i> Komunikasi Efektif</span>
+            <span class="soft-badge"><i class="fa-solid fa-handshake"></i> Kerja Sama Antar Tim</span>
+            <span class="soft-badge"><i class="fa-solid fa-clock"></i> Manajemen Waktu</span>
+            <span class="soft-badge"><i class="fa-solid fa-magnifying-glass-chart"></i> Analisis Kebutuhan Sistem</span>
+            <span class="soft-badge"><i class="fa-solid fa-shield-halved"></i> Tanggung Jawab &amp; Inisiatif</span>
+          </div>
+        </div>
+        <div class="skills-extra-card spotlight-card">
+          <h4 class="skills-extra-title"><i class="fa-solid fa-language"></i> Kemampuan Bahasa</h4>
+          <div class="lang-list">
+            <div class="lang-item">
+              <span class="lang-name"><i class="fa-solid fa-flag"></i> Bahasa Indonesia</span>
+              <span class="lang-level">Native / Lancar</span>
+            </div>
+            <div class="lang-item">
+              <span class="lang-name"><i class="fa-solid fa-globe"></i> Bahasa Inggris</span>
+              <span class="lang-level">Menengah (Intermediate)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tech Pills -->
+      <div class="tech-pills">
+        <span class="tech-pill"><i class="fa-brands fa-react"></i> React Native</span>
+        <span class="tech-pill"><i class="fa-brands fa-react"></i> Next.js</span>
+        <span class="tech-pill"><i class="fa-brands fa-js"></i> JavaScript</span>
+        <span class="tech-pill"><i class="fa-brands fa-python"></i> Python &amp; Django</span>
+        <span class="tech-pill"><i class="fa-brands fa-java"></i> Java &amp; Spring Boot</span>
+        <span class="tech-pill"><i class="fa-brands fa-php"></i> PHP &amp; Laravel</span>
+        <span class="tech-pill"><i class="fa-solid fa-code"></i> C# &amp; ASP.NET 8.0</span>
+        <span class="tech-pill"><i class="fa-solid fa-c"></i> Bahasa C</span>
+        <span class="tech-pill"><i class="fa-solid fa-database"></i> SQL Server</span>
+        <span class="tech-pill"><i class="fa-solid fa-database"></i> Oracle SQL</span>
+        <span class="tech-pill"><i class="fa-solid fa-cloud"></i> Supabase</span>
+        <span class="tech-pill"><i class="fa-solid fa-brain"></i> Qdrant Vector DB</span>
+        <span class="tech-pill"><i class="fa-brands fa-figma"></i> Figma</span>
+        <span class="tech-pill"><i class="fa-solid fa-chart-column"></i> Power BI</span>
+        <span class="tech-pill"><i class="fa-brands fa-git-alt"></i> Git &amp; GitHub</span>
+        <span class="tech-pill"><i class="fa-solid fa-vial"></i> Postman</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CERTIFICATIONS SECTION -->
+  <section class="certifications section" id="certifications">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Kompetensi</span>
+        <h2 class="section-title">Pelatihan</h2>
+        <p class="section-subtitle">Pelatihan yang telah diselesaikan untuk meningkatkan
+          kemampuan teknis.</p>
+      </div>
+      <div class="cert-grid">
+        <div class="cert-card interactive-cert spotlight-card tilt-card" onclick="openCertModal(0)">
+          <div class="cert-header">
+            <div class="cert-icon"
+              style="background: rgba(16, 185, 129, 0.12); color: #059669; border-color: rgba(16, 185, 129, 0.3);"><i
+                class="fa-solid fa-brain"></i></div>
+            <span class="cert-year"
+              style="background: rgba(16, 185, 129, 0.12); color: #059669; border-color: rgba(16, 185, 129, 0.25);">2026</span>
+          </div>
+          <div>
+            <h3 class="cert-name">Artificial Intelligence</h3>
+            <p class="cert-tag"><i class="fa-solid fa-certificate"></i> BISA AI Academy · No: 2026/506/69181</p>
+            <span class="cert-click-hint">Lihat Sertifikat <i class="fa-solid fa-arrow-right"></i></span>
+          </div>
+        </div>
+
+        <div class="cert-card interactive-cert spotlight-card tilt-card" onclick="openCertModal(1)">
+          <div class="cert-header">
+            <div class="cert-icon"><i class="fa-brands fa-figma"></i></div>
+            <span class="cert-year">2026</span>
+          </div>
+          <div>
+            <h3 class="cert-name">Basic Figma: Pembuatan UI Aplikasi Mobile</h3>
+            <p class="cert-tag"><i class="fa-solid fa-certificate"></i> BISA AI Academy · No: 2026/537/69181</p>
+            <span class="cert-click-hint">Lihat Sertifikat <i class="fa-solid fa-arrow-right"></i></span>
+          </div>
+        </div>
+
+        <div class="cert-card interactive-cert spotlight-card tilt-card" onclick="openCertModal(2)">
+          <div class="cert-header">
+            <div class="cert-icon"><i class="fa-brands fa-node-js"></i></div>
+            <span class="cert-year">2026</span>
+          </div>
+          <div>
+            <h3 class="cert-name">Dasar – dasar Node JS</h3>
+            <p class="cert-tag"><i class="fa-solid fa-certificate"></i> BISA AI Academy · No: 2026/412/69181</p>
+            <span class="cert-click-hint">Lihat Sertifikat <i class="fa-solid fa-arrow-right"></i></span>
+          </div>
+        </div>
+
+        <div class="cert-card interactive-cert spotlight-card tilt-card" onclick="openCertModal(3)">
+          <div class="cert-header">
+            <div class="cert-icon"><i class="fa-solid fa-file-excel"></i></div>
+            <span class="cert-year">2026</span>
+          </div>
+          <div>
+            <h3 class="cert-name">Basic Excel</h3>
+            <p class="cert-tag"><i class="fa-solid fa-certificate"></i> BISA AI Academy · No: 2026/294/69181</p>
+            <span class="cert-click-hint">Lihat Sertifikat <i class="fa-solid fa-arrow-right"></i></span>
+          </div>
+        </div>
+
+        <div class="cert-card interactive-cert spotlight-card tilt-card" onclick="openCertModal(4)">
+          <div class="cert-header">
+            <div class="cert-icon"
+              style="background: rgba(239, 68, 68, 0.1); color: #dc2626; border-color: rgba(239, 68, 68, 0.25);"><i
+                class="fa-solid fa-network-wired"></i></div>
+            <span class="cert-year"
+              style="background: rgba(239, 68, 68, 0.1); color: #dc2626; border-color: rgba(239, 68, 68, 0.25);">2026</span>
+          </div>
+          <div>
+            <h3 class="cert-name">MikroTik Certified Network Associate (MTCNA)</h3>
+            <p class="cert-tag"><i class="fa-solid fa-certificate"></i> Mikrotikls SIA (Latvia) · No: 2601NA2655</p>
+            <span class="cert-click-hint">Lihat Sertifikat <i class="fa-solid fa-arrow-right"></i></span>
+          </div>
+        </div>
+
+        <div class="cert-card interactive-cert spotlight-card tilt-card" onclick="openCertModal(5)">
+          <div class="cert-header">
+            <div class="cert-icon"><i class="fa-brands fa-python"></i></div>
+            <span class="cert-year">2026</span>
+          </div>
+          <div>
+            <h3 class="cert-name">Dasar - Dasar Python</h3>
+            <p class="cert-tag"><i class="fa-solid fa-certificate"></i> BISA AI Academy · No: 2026/249/69181</p>
+            <span class="cert-click-hint">Lihat Sertifikat <i class="fa-solid fa-arrow-right"></i></span>
+          </div>
+        </div>
+
+        <div class="cert-card interactive-cert spotlight-card tilt-card" onclick="openCertModal(6)">
+          <div class="cert-header">
+            <div class="cert-icon"><i class="fa-brands fa-python"></i></div>
+            <span class="cert-year">2025</span>
+          </div>
+          <div>
+            <h3 class="cert-name">Python Fundamental</h3>
+            <p class="cert-tag"><i class="fa-solid fa-certificate"></i> Aguna Course · No: AC-315-33886729-97</p>
+            <span class="cert-click-hint">Lihat Sertifikat <i class="fa-solid fa-arrow-right"></i></span>
+          </div>
+        </div>
+
+        <div class="cert-card interactive-cert spotlight-card tilt-card" onclick="openCertModal(7)">
+          <div class="cert-header">
+            <div class="cert-icon"><i class="fa-brands fa-linux"></i></div>
+            <span class="cert-year">2025</span>
+          </div>
+          <div>
+            <h3 class="cert-name">Linux Fundamental</h3>
+            <p class="cert-tag"><i class="fa-solid fa-certificate"></i> Aguna Course · No: AC-050-75298727-98</p>
+            <span class="cert-click-hint">Lihat Sertifikat <i class="fa-solid fa-arrow-right"></i></span>
+          </div>
+        </div>
+
+        <div class="cert-card interactive-cert spotlight-card tilt-card" onclick="openCertModal(8)">
+          <div class="cert-header">
+            <div class="cert-icon"><i class="fa-solid fa-server"></i></div>
+            <span class="cert-year">2025</span>
+          </div>
+          <div>
+            <h3 class="cert-name">Virtual Machine Fundamental</h3>
+            <p class="cert-tag"><i class="fa-solid fa-certificate"></i> Aguna Course · No: AC-446-15449133-19</p>
+            <span class="cert-click-hint">Lihat Sertifikat <i class="fa-solid fa-arrow-right"></i></span>
+          </div>
+        </div>
+
+        <div class="cert-card interactive-cert spotlight-card tilt-card" onclick="openCertModal(9)">
+          <div class="cert-header">
+            <div class="cert-icon"><i class="fa-solid fa-diagram-project"></i></div>
+            <span class="cert-year">2025</span>
+          </div>
+          <div>
+            <h3 class="cert-name">Simulasi Jaringan dengan PNETLab</h3>
+            <p class="cert-tag"><i class="fa-solid fa-certificate"></i> Aguna Course · No: AC-205-42646055-11</p>
+            <span class="cert-click-hint">Lihat Sertifikat <i class="fa-solid fa-arrow-right"></i></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROJECTS SECTION -->
+  <section class="projects section" id="projects">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Portofolio</span>
+        <h2 class="section-title">Pengerjaan Proyek</h2>
+        <p class="section-subtitle">Pengembangan aplikasi berbasis Web, Mobile, dan Desktop sesuai dengan
+          pengalaman di CV.</p>
+      </div>
+
+      <!-- Interactive Filter & Search Controls -->
+      <div class="projects-controls-bar">
+        <div class="filter-btns" id="filter-btns">
+          <button class="filter-btn active" data-filter="all" id="filter-all">Semua</button>
+          <button class="filter-btn" data-filter="web" id="filter-web">Web App</button>
+          <button class="filter-btn" data-filter="mobile" id="filter-mobile">Mobile &amp; AI</button>
+          <button class="filter-btn" data-filter="desktop" id="filter-desktop">Desktop System</button>
+        </div>
+        <div class="project-search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="project-search-input"
+            placeholder="Cari proyek atau teknologi (mis. Next.js, C#, Java)..." aria-label="Cari Proyek" />
+        </div>
+      </div>
+
+      <div class="projects-grid" id="projects-grid">
+        <!-- Proyek akan dirender secara dinamis oleh script.js (dari Supabase atau data fallback) -->
+      </div>
+    </div>
+  </section>
+
+  <!-- TIMELINE SECTION -->
+  <section class="timeline-section section" id="timeline">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Rekam Jejak</span>
+        <h2 class="section-title">Perjalanan</h2>
+        <p class="section-subtitle">Pendidikan formal, kepengurusan organisasi kampus, dan keterlibatan proyek.</p>
+      </div>
+      <div class="timeline-tabs">
+        <button class="tab-btn active" data-tab="education" id="tab-education">
+          <i class="fa-solid fa-graduation-cap"></i> Pendidikan
+        </button>
+        <button class="tab-btn" data-tab="organization" id="tab-organization">
+          <i class="fa-solid fa-users"></i> Organisasi &amp; Kepanitiaan
+        </button>
+        <button class="tab-btn" data-tab="projects-timeline" id="tab-projects-timeline">
+          <i class="fa-solid fa-diagram-project"></i> Pengalaman Proyek
+        </button>
+      </div>
+
+      <!-- Education Timeline -->
+      <div class="timeline-content active" id="education-timeline">
+        <div class="timeline">
+          <div class="timeline-item left">
+            <div class="timeline-dot pulse"></div>
+            <div class="timeline-card active-card spotlight-card">
+              <div class="timeline-year current-badge">Agustus 2024 — Sekarang</div>
+              <h3 class="timeline-title">Politeknik Astra</h3>
+              <p class="timeline-sub">D3 Manajemen Informatika · Cikarang, Indonesia</p>
+              <p class="timeline-desc">
+                Sedang menempuh studi D3 Manajemen Informatika dengan capaian IPK kumulatif 3.31/4.00.
+                Mempelajari rekayasa perangkat lunak, algoritma, basis data, pengembangan sistem mobile &amp;
+                web.
+              </p>
+              <div class="timeline-tags">
+                <span class="tl-tag">GPA: 3.31 / 4.00</span>
+                <span class="tl-tag">Manajemen Informatika</span>
+              </div>
+            </div>
+          </div>
+          <div class="timeline-item right">
+            <div class="timeline-dot"></div>
+            <div class="timeline-card spotlight-card">
+              <div class="timeline-year">Juli 2021 — Juni 2024</div>
+              <h3 class="timeline-title">SMA Plus PGRI Cibinong</h3>
+              <p class="timeline-sub">Ilmu Pengetahuan Alam (IPA) · Bogor, Indonesia</p>
+              <p class="timeline-desc">
+                Menyelesaikan pendidikan tingkat menengah atas dengan penjurusan Ilmu Pengetahuan Alam, membangun
+                fondasi logika matematis dan sains.
+              </p>
+              <div class="timeline-tags">
+                <span class="tl-tag">MIPA</span>
+                <span class="tl-tag">Bogor</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Organization & Committee Timeline -->
+      <div class="timeline-content" id="organization-timeline">
+        <div class="timeline">
+          <div class="timeline-item left">
+            <div class="timeline-dot pulse"></div>
+            <div class="timeline-card active-card spotlight-card">
+              <div class="timeline-year current-badge">2026 — 2027</div>
+              <h3 class="timeline-title">Himpunan Mahasiswa Manajemen Informatika (HIMMAMI)</h3>
+              <p class="timeline-sub">Politeknik Astra</p>
+              <p class="timeline-desc">Dipercaya menjabat sebagai <strong>Ketua Departemen Divisi Publikasi, Humas dan
+                  Dokumentasi</strong>, mengkoordinasikan strategi publikasi, branding departemen, serta dokumentasi
+                seluruh program kerja.</p>
+              <span class="org-role-badge"><i class="fa-solid fa-award"></i> Ketua Departemen Divisi Publikasi, Humas
+                &amp; Dokumentasi</span>
+            </div>
+          </div>
+          <div class="timeline-item right">
+            <div class="timeline-dot"></div>
+            <div class="timeline-card spotlight-card">
+              <div class="timeline-year">Mei 2026</div>
+              <h3 class="timeline-title">Seminar Forum Ilmiah 2026</h3>
+              <p class="timeline-sub">Kepanitiaan Politeknik Astra</p>
+              <p class="timeline-desc">Bertanggung jawab sebagai <strong>Koordinator Divisi Publikasi, Humas dan
+                  Dokumentasi</strong> dalam penyelenggaraan seminar forum ilmiah tahunan.</p>
+              <span class="org-role-badge"><i class="fa-solid fa-bullhorn"></i> Koordinator Divisi Publikasi, Humas
+                &amp; Dokumentasi</span>
+            </div>
+          </div>
+          <div class="timeline-item left">
+            <div class="timeline-dot"></div>
+            <div class="timeline-card spotlight-card">
+              <div class="timeline-year">Januari 2026</div>
+              <h3 class="timeline-title">Hello Project 2025 &amp; IDENTITAS 2025</h3>
+              <p class="timeline-sub">Kepanitiaan Mahasiswa Politeknik Astra</p>
+              <p class="timeline-desc">Menjabat sebagai <strong>Koordinator Publikasi, Humas, Desain dan
+                  Dokumentasi</strong> dalam rangkaian acara perlombaan dan pengenalan kampus.</p>
+              <span class="org-role-badge"><i class="fa-solid fa-palette"></i> Koordinator Publikasi, Desain &amp;
+                Dokumentasi</span>
+            </div>
+          </div>
+          <div class="timeline-item right">
+            <div class="timeline-dot"></div>
+            <div class="timeline-card spotlight-card">
+              <div class="timeline-year">2025 — 2026</div>
+              <h3 class="timeline-title">Himpunan Mahasiswa Manajemen Informatika (HIMMAMI)</h3>
+              <p class="timeline-sub">Politeknik Astra</p>
+              <p class="timeline-desc">Berperan aktif sebagai <strong>Anggota Divisi Publikasi, Humas dan
+                  Dokumentasi</strong>, mengelola konten media sosial dan materi publikasi visual.</p>
+              <span class="org-role-badge"><i class="fa-solid fa-user-group"></i> Anggota Divisi Publikasi, Humas &amp;
+                Dokumentasi</span>
+            </div>
+          </div>
+          <div class="timeline-item left">
+            <div class="timeline-dot"></div>
+            <div class="timeline-card spotlight-card">
+              <div class="timeline-year">Desember 2025</div>
+              <h3 class="timeline-title">SPARTCO 2025</h3>
+              <p class="timeline-sub">Kepanitiaan Politeknik Astra</p>
+              <p class="timeline-desc">Anggota panitia Publikasi, Desain dan Dokumentasi untuk penyelenggaraan kompetisi
+                olahraga dan seni kampus.</p>
+              <span class="org-role-badge"><i class="fa-solid fa-camera"></i> Anggota Panitia Publikasi, Desain &amp;
+                Dokumentasi</span>
+            </div>
+          </div>
+          <div class="timeline-item right">
+            <div class="timeline-dot"></div>
+            <div class="timeline-card spotlight-card">
+              <div class="timeline-year">Juni 2025 &amp; April 2025</div>
+              <h3 class="timeline-title">UI/UX Training &amp; Seminar Forum Ilmiah 2025</h3>
+              <p class="timeline-sub">Kepanitiaan Politeknik Astra</p>
+              <p class="timeline-desc">Anggota panitia Publikasi, Desain dan Dokumentasi pada workshop UI/UX design dan
+                Seminar Ilmiah 2025.</p>
+              <span class="org-role-badge"><i class="fa-solid fa-pen-nib"></i> Anggota Panitia Publikasi, Desain &amp;
+                Dokumentasi</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Projects Timeline -->
+      <div class="timeline-content" id="projects-timeline-content">
+        <div class="timeline">
+          <div class="timeline-item left">
+            <div class="timeline-dot pulse"></div>
+            <div class="timeline-card active-card spotlight-card">
+              <div class="timeline-year current-badge">Juni 2026 — Sekarang</div>
+              <h3 class="timeline-title">Chatbot Adenomyosis &amp; Endometriosis (BRIN)</h3>
+              <p class="timeline-sub">Project Member | Front-End Developer &amp; System Analyst</p>
+              <p class="timeline-desc">Aplikasi chatbot konsultasi dan edukasi penyakit kewanitaan bersama Badan Riset
+                dan Inovasi Nasional (BRIN) menggunakan React Native, Python, Django, Supabase &amp; Qdrant.</p>
+              <div class="timeline-tags"><span class="tl-tag">React Native</span><span
+                  class="tl-tag">Supabase</span><span class="tl-tag">Qdrant</span><span class="tl-tag">Django</span>
+              </div>
+            </div>
+          </div>
+          <div class="timeline-item right">
+            <div class="timeline-dot"></div>
+            <div class="timeline-card spotlight-card">
+              <div class="timeline-year">Juli 2026 — Agustus 2026</div>
+              <h3 class="timeline-title">Booking Motor (Migrasi AHM)</h3>
+              <p class="timeline-sub">Project Member | Back-End &amp; Front-End Developer</p>
+              <p class="timeline-desc">Mengembangkan fungsi Booking motor untuk proyek migrasi PT Astra Honda Motor
+                (AHM) dengan Java, Oracle SQL Developer, Postman &amp; SonarQube.</p>
+              <div class="timeline-tags"><span class="tl-tag">Java</span><span class="tl-tag">Oracle SQL</span><span
+                  class="tl-tag">Postman</span><span class="tl-tag">SonarQube</span></div>
+            </div>
+          </div>
+          <div class="timeline-item left">
+            <div class="timeline-dot"></div>
+            <div class="timeline-card spotlight-card">
+              <div class="timeline-year">September 2025 — Mei 2026</div>
+              <h3 class="timeline-title">Migrasi Sistem Informasi Akademik Web</h3>
+              <p class="timeline-sub">Project Member | Full-stack Developer</p>
+              <p class="timeline-desc">Migrasi website SIA versi lama ke framework modern Next.js dan backend performa
+                tinggi ASP.NET 8.0 dengan basis data SQL Server.</p>
+              <div class="timeline-tags"><span class="tl-tag">Next.js</span><span class="tl-tag">ASP.NET 8.0</span><span
+                  class="tl-tag">C#</span><span class="tl-tag">SQL Server</span></div>
+            </div>
+          </div>
+          <div class="timeline-item right">
+            <div class="timeline-dot"></div>
+            <div class="timeline-card spotlight-card">
+              <div class="timeline-year">Oktober 2025 — Februari 2026</div>
+              <h3 class="timeline-title">Manajemen Asset Politeknik Astra</h3>
+              <p class="timeline-sub">Project Member | Full-stack Developer &amp; System Analyst</p>
+              <p class="timeline-desc">Membangun website inventaris barang dan sistem pelaporan maintenance berkala
+                menggunakan PHP dan database MySQL.</p>
+              <div class="timeline-tags"><span class="tl-tag">PHP</span><span class="tl-tag">MySQL</span><span
+                  class="tl-tag">Figma</span><span class="tl-tag">Draw.io</span></div>
+            </div>
+          </div>
+          <div class="timeline-item left">
+            <div class="timeline-dot"></div>
+            <div class="timeline-card spotlight-card">
+              <div class="timeline-year">Mei 2025 — Juli 2026</div>
+              <h3 class="timeline-title">Aplikasi Desktop Karaoke Poprock</h3>
+              <p class="timeline-sub">Project Member | Fullstack Developer &amp; System Analyst</p>
+              <p class="timeline-desc">Membangun dua aplikasi desktop pengelolaan karaoke (modul operasional staf &amp;
+                ruangan serta modul transaksi kasir) menggunakan Java &amp; C# terintegrasi SQL Server.</p>
+              <div class="timeline-tags"><span class="tl-tag">Java</span><span class="tl-tag">JavaFX</span><span
+                  class="tl-tag">C#</span><span class="tl-tag">SQL Server</span></div>
+            </div>
+          </div>
+          <div class="timeline-item right">
+            <div class="timeline-dot"></div>
+            <div class="timeline-card spotlight-card">
+              <div class="timeline-year">Desember 2024 — Februari 2025</div>
+              <h3 class="timeline-title">Aplikasi Desktop Booking Hotel</h3>
+              <p class="timeline-sub">Project Member | Fullstack Developer &amp; System Analyst</p>
+              <p class="timeline-desc">Membangun aplikasi booking hotel berbasis bahasa C yang mengelola kamar,
+                customer, member, transaksi, dan denda keterlambatan.</p>
+              <div class="timeline-tags"><span class="tl-tag">Bahasa C</span><span class="tl-tag">Data
+                  Structures</span><span class="tl-tag">Draw.io</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT SECTION -->
+  <section class="contact section" id="contact">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Kontak</span>
+        <h2 class="section-title">Mari Bekerja Sama</h2>
+        <p class="section-subtitle">Terbuka untuk peluang kerja, magang, proyek kolaborasi, maupun diskusi teknologi.
+        </p>
+      </div>
+      <div class="contact-wrapper">
+        <div class="contact-cards-grid">
+          <div class="contact-card spotlight-card" id="contact-card-email">
+            <div class="contact-card-icon"><i class="fa-solid fa-envelope"></i></div>
+            <div class="contact-card-text">
+              <span class="contact-card-label">Email Utama</span>
+              <div class="contact-card-value-group">
+                <a href="mailto:rasyaarfiana@gmail.com" class="contact-card-value">rasyaarfiana@gmail.com</a>
+                <button class="btn-copy-inline" onclick="copyText('rasyaarfiana@gmail.com', 'Email Utama')"
+                  title="Salin Email">
+                  <i class="fa-regular fa-copy"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="contact-card spotlight-card" id="contact-card-email-campus">
+            <div class="contact-card-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+            <div class="contact-card-text">
+              <span class="contact-card-label">Email Kampus</span>
+              <div class="contact-card-value-group">
+                <a href="mailto:0320240064@polytechnic.astra.ac.id"
+                  class="contact-card-value">0320240064@polytechnic.astra.ac.id</a>
+                <button class="btn-copy-inline" onclick="copyText('0320240064@polytechnic.astra.ac.id', 'Email Kampus')"
+                  title="Salin Email Kampus">
+                  <i class="fa-regular fa-copy"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="contact-card spotlight-card" id="contact-card-phone">
+            <div class="contact-card-icon"><i class="fa-solid fa-phone"></i></div>
+            <div class="contact-card-text">
+              <span class="contact-card-label">Telepon / WhatsApp</span>
+              <div class="contact-card-value-group">
+                <a href="https://wa.me/6281289979099" target="_blank" rel="noopener" class="contact-card-value">+62
+                  812-8997-9099</a>
+                <button class="btn-copy-inline" onclick="copyText('+6281289979099', 'Nomor WhatsApp')"
+                  title="Salin Nomor WhatsApp">
+                  <i class="fa-regular fa-copy"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="contact-card spotlight-card" id="contact-card-location">
+            <div class="contact-card-icon"><i class="fa-solid fa-location-dot"></i></div>
+            <div class="contact-card-text">
+              <span class="contact-card-label">Domisili</span>
+              <span class="contact-card-value">Bogor, Jawa Barat, Indonesia</span>
+            </div>
+          </div>
+        </div>
+        <div class="contact-socials-box spotlight-card">
+          <p class="contact-socials-title">Koneksi Sosial &amp; Diskusi Langsung</p>
+          <div class="contact-socials">
+            <a href="https://wa.me/6281289979099" target="_blank" rel="noopener"
+              class="contact-social-btn btn-wa magnetic-btn" id="contact-whatsapp" aria-label="WhatsApp">
+              <i class="fa-brands fa-whatsapp"></i>
+              <span>Hubungi via WhatsApp</span>
+            </a>
+            <a href="https://www.linkedin.com/in/rasya-arfian-akbar" target="_blank" rel="noopener"
+              class="contact-social-btn btn-linkedin magnetic-btn" id="contact-linkedin" aria-label="LinkedIn">
+              <i class="fa-brands fa-linkedin-in"></i>
+              <span>LinkedIn</span>
+            </a>
+            <a href="https://instagram.com/rasyaarfian" target="_blank" rel="noopener"
+              class="contact-social-btn btn-instagram magnetic-btn" id="contact-instagram" aria-label="Instagram">
+              <i class="fa-brands fa-instagram"></i>
+              <span>Instagram</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-logo">
+        <span class="logo-bracket">&lt;</span>
+        <span class="logo-name">Rasya.dev</span>
+        <span class="logo-bracket">/&gt;</span>
+      </div>
+      <p class="footer-copy">&#169; 2026 Rasya Arfian Akbar · Politeknik Astra.</p>
+      <a href="#home" class="back-to-top" id="back-to-top" aria-label="Kembali ke atas">
+        <i class="fa-solid fa-arrow-up"></i>
+      </a>
+    </div>
+  </footer>
+
+  <!-- COMMAND PALETTE MODAL (Ctrl + K) -->
+  <div class="modal-overlay" id="cmd-modal-overlay">
+    <div class="modal-box cmd-modal-box" role="dialog" aria-modal="true">
+      <div class="cmd-search-header">
+        <i class="fa-solid fa-terminal"></i>
+        <input type="text" id="cmd-input" placeholder="Ketik perintah atau cari proyek, keahlian, kontak..."
+          autocomplete="off" />
+        <button class="cmd-esc-btn" id="cmd-close">ESC</button>
+      </div>
+      <div class="cmd-list" id="cmd-list">
+        <!-- Dirender dinamis oleh script.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- PROJECT DETAIL MODAL -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal-box" id="modal-box" role="dialog" aria-modal="true">
+      <button class="modal-close" id="modal-close" aria-label="Tutup modal"><i class="fa-solid fa-xmark"></i></button>
+      <div class="modal-content" id="modal-content"></div>
+    </div>
+  </div>
+
+  <!-- CV VIEWER MODAL (INTEGRASI SUPABASE) -->
+  <div class="modal-overlay" id="cv-modal-overlay">
+    <div class="modal-box cv-modal-box" role="dialog" aria-modal="true">
+      <div class="cv-modal-header">
+        <div class="cv-modal-title-group">
+          <div class="cv-modal-icon"><i class="fa-solid fa-file-invoice"></i></div>
+          <div>
+            <h3 class="cv-modal-title">Rasya Arfian Akbar</h3>
+            <span class="cv-modal-subtitle" id="cv-source-badge">
+              <i class="fa-solid fa-cloud"></i> Terkoneksi Supabase Storage
+            </span>
+          </div>
+        </div>
+        <div class="cv-view-toggles" id="cv-view-toggles">
+          <button class="cv-toggle-btn active" id="btn-toggle-pdf" onclick="switchCvView('pdf')"><i
+              class="fa-solid fa-file-pdf"></i> Dokumen PDF</button>
+          <button class="cv-toggle-btn" id="btn-toggle-interactive" onclick="switchCvView('interactive')"><i
+              class="fa-solid fa-list-check"></i> Ringkasan Interaktif</button>
+        </div>
+        <div class="cv-modal-actions">
+          <a href="#" class="btn-outline-blue btn-sm" id="cv-open-tab" target="_blank" rel="noopener">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> Tab Baru
+          </a>
+          <a href="#" class="btn-primary btn-sm btn-download-cv" id="cv-modal-download"
+            download="CV-Rasya-Arfian-Akbar.pdf" target="_blank" rel="noopener">
+            <i class="fa-solid fa-download"></i> Download PDF
+          </a>
+          <button class="modal-close-btn" id="cv-modal-close" aria-label="Tutup CV"><i
+              class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
+      <div class="cv-modal-body">
+        <div class="cv-iframe-container" id="cv-iframe-container">
+          <!-- Iframe dokumen PDF dimuat di sini secara otomatis -->
+        </div>
+        <div class="cv-notice-bar">
+          <span><i class="fa-solid fa-circle-info"></i> Menampilkan dokumen CV terbaru.</span>
+          <span style="font-weight:600;">Format: Dokumen Resmi PDF</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CERTIFICATE DETAIL MODAL -->
+  <div class="modal-overlay" id="cert-modal-overlay">
+    <div class="modal-box cert-modal-box" role="dialog" aria-modal="true">
+      <button class="modal-close" id="cert-modal-close" aria-label="Tutup modal sertifikat"><i
+          class="fa-solid fa-xmark"></i></button>
+      <div class="modal-content" id="cert-modal-content"></div>
+    </div>
+  </div>
+
+  <!-- MOBILE FLOATING ACTION BAR -->
+  <div class="mobile-fab-bar" id="mobile-fab-bar">
+    <button class="fab-btn fab-cv btn-preview-cv" title="Lihat CV">
+      <i class="fa-solid fa-file-pdf"></i> <span>Lihat CV</span>
+    </button>
+    <a href="https://wa.me/6281289979099" target="_blank" rel="noopener" class="fab-btn fab-wa"
+      title="WhatsApp Langsung">
+      <i class="fa-brands fa-whatsapp"></i> <span>WhatsApp</span>
+    </a>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div class="toast-notification" id="toast-notification">
+    <i class="fa-solid fa-circle-check"></i>
+    <span id="toast-message">Teks disalin ke clipboard</span>
+  </div>
+
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="script.js?v=2.4"></script>
+</body>
+
+</html>
