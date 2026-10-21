@@ -308,6 +308,11 @@ body.dark-theme .btn-outline-blue {
   box-shadow: 0 8px 20px -4px rgba(37, 99, 235, 0.35);
 }
 
+#cv-refresh-btn {
+  font-family: inherit;
+  cursor: pointer;
+}
+
 /* ============================================================
    NAVBAR
    ============================================================ */
@@ -3219,9 +3224,10 @@ body.dark-theme .modal-tag {
 
 .cert-modal-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
   margin-bottom: 16px;
+  padding-right: 48px;
 }
 
 .cert-modal-icon {
@@ -3518,20 +3524,158 @@ body.dark-theme .modal-tag {
     right: auto !important;
   }
 
+  /* Hero Mobile Styling */
+  .hero {
+    padding: 105px 0 65px;
+    min-height: auto;
+  }
+
+  .scroll-indicator {
+    display: none !important;
+  }
+
   .hero-stats {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-around !important;
+    width: 100% !important;
+    padding: 14px 10px !important;
+    margin-bottom: 24px !important;
+    background: rgba(15, 23, 42, 0.72) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: var(--radius-lg) !important;
+    backdrop-filter: blur(12px) !important;
+    gap: 0 !important;
+  }
+
+  .stat-item {
+    flex: 1;
+    display: flex;
     flex-direction: column;
-    gap: 14px;
-    width: 100%;
-    align-items: flex-start;
+    align-items: center;
+    text-align: center;
+    padding: 0 4px !important;
+  }
+
+  .stat-number {
+    font-family: var(--font-mono);
+    font-size: 1.55rem !important;
+    font-weight: 800;
+    color: var(--white);
+    line-height: 1.1;
+  }
+
+  .stat-label {
+    font-size: 0.72rem !important;
+    color: var(--gray-400);
+    font-weight: 500;
+    text-align: center;
+    line-height: 1.25;
+    margin-top: 3px;
   }
 
   .stat-divider {
+    width: 1px !important;
+    height: 34px !important;
+    background: rgba(255, 255, 255, 0.14) !important;
+    flex-shrink: 0;
+  }
+
+  .hero-cta {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
     width: 100%;
-    height: 1px;
+    margin-bottom: 20px;
+  }
+
+  .hero-cta .btn-primary,
+  .hero-cta .btn-outline {
+    flex: 1;
+    justify-content: center;
+    padding: 12px 14px;
+    font-size: 0.88rem;
+    white-space: nowrap;
+  }
+
+  /* Modals Mobile Refinements */
+  .modal-box {
+    width: 95% !important;
+    max-height: 92vh !important;
   }
 
   .modal-content {
-    padding: 22px;
+    padding: 20px 16px !important;
+  }
+
+  .cert-modal-header {
+    gap: 12px;
+    margin-bottom: 14px;
+    padding-right: 42px;
+  }
+
+  .cert-modal-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 1.25rem;
+  }
+
+  .cert-modal-title {
+    font-size: 1.15rem !important;
+    line-height: 1.35;
+    margin: 4px 0 2px !important;
+  }
+
+  .cert-badge-status {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    margin-bottom: 4px;
+  }
+
+  .cert-tabs {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    margin-bottom: 14px !important;
+  }
+
+  .cert-tab-btn {
+    justify-content: center;
+    padding: 8px 8px;
+    font-size: 0.76rem;
+  }
+
+  .cert-doc-container {
+    margin-bottom: 14px;
+  }
+
+  .cert-pdf-iframe {
+    height: 320px !important;
+  }
+
+  .cert-doc-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .cert-doc-meta {
+    font-size: 0.78rem;
+  }
+
+  .cert-doc-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .cert-doc-actions .btn-sm {
+    justify-content: center;
+    padding: 8px 10px !important;
+    font-size: 0.78rem !important;
   }
 
   .cv-modal-box {
@@ -3545,6 +3689,23 @@ body.dark-theme .modal-tag {
 }
 
 @media (max-width: 480px) {
+  .hero-cta {
+    flex-direction: column;
+  }
+
+  .hero-cta .btn-primary,
+  .hero-cta .btn-outline {
+    width: 100%;
+  }
+
+  .stat-number {
+    font-size: 1.35rem !important;
+  }
+
+  .stat-label {
+    font-size: 0.68rem !important;
+  }
+
   .about-details-grid {
     grid-template-columns: 1fr;
   }
@@ -3552,5 +3713,9 @@ body.dark-theme .modal-tag {
   .contact-social-btn {
     width: 100%;
     justify-content: center;
+  }
+
+  .cert-doc-actions {
+    grid-template-columns: 1fr;
   }
 }

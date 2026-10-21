@@ -20,6 +20,13 @@ if (window.supabase && typeof window.supabase.createClient === 'function') {
 const DEFAULT_CV_URL = 'https://dhmabndpzrzacjrtoank.supabase.co/storage/v1/object/public/project-images/CV-Rasya-Arfian-Akbar.pdf';
 let currentCvUrl = DEFAULT_CV_URL;
 let currentCvViewMode = 'pdf';
+let cvCacheVersion = Date.now();
+
+function getCvFreshUrl(url) {
+  const base = url || currentCvUrl || DEFAULT_CV_URL;
+  const sep = base.includes('?') ? '&' : '?';
+  return `${base}${sep}t=${cvCacheVersion}`;
+}
 
 // ============================================================
 // DATA PROYEK DENGAN METODE STAR (Problem - Solution - Impact)
@@ -856,11 +863,13 @@ const cvModalClose = document.getElementById('cv-modal-close');
 const cvIframeContainer = document.getElementById('cv-iframe-container');
 const cvOpenTabBtn = document.getElementById('cv-open-tab');
 const cvModalDownloadBtn = document.getElementById('cv-modal-download');
+const cvRefreshBtn = document.getElementById('cv-refresh-btn');
 const cvSourceBadge = document.getElementById('cv-source-badge');
 
 function updateCvLinks(url) {
   currentCvUrl = url || DEFAULT_CV_URL;
-  if (cvOpenTabBtn) cvOpenTabBtn.href = currentCvUrl;
+  const freshUrl = getCvFreshUrl(currentCvUrl);
+  if (cvOpenTabBtn) cvOpenTabBtn.href = freshUrl;
   if (cvModalDownloadBtn) {
     cvModalDownloadBtn.href = currentCvUrl;
     cvModalDownloadBtn.setAttribute('download', 'CV-Rasya-Arfian-Akbar.pdf');
@@ -885,7 +894,7 @@ function renderCvFallback() {
           <span><i class="fa-solid fa-graduation-cap"></i> 0320240064@polytechnic.astra.ac.id</span>
           <span><i class="fa-solid fa-phone"></i> +62 812-8997-9099</span>
           <span><i class="fa-solid fa-location-dot"></i> Bogor, Indonesia</span>
-          <span><i class="fa-brands fa-linkedin"></i> linkedin.com/in/rasya-arfian-akbar</span>
+          <span><i class="fa-brands fa-linkedin"></i> <a href="https://www.linkedin.com/in/rasya-arfian-akbar-577b12404" target="_blank" rel="noopener" style="color:inherit; text-decoration:underline;">linkedin.com/in/rasya-arfian-akbar-577b12404</a></span>
           <span><i class="fa-brands fa-instagram"></i> @rasyaarfian</span>
         </div>
       </div>
@@ -1052,13 +1061,14 @@ function switchCvView(mode) {
   if (!cvIframeContainer) return;
 
   if (mode === 'pdf') {
+    const previewUrl = getCvFreshUrl(currentCvUrl);
     cvIframeContainer.innerHTML = `
       <object 
-        data="${currentCvUrl}" 
+        data="${previewUrl}" 
         type="application/pdf" 
         style="width: 100%; height: 100%; border: none;">
         <iframe 
-          src="https://docs.google.com/viewer?url=${encodeURIComponent(currentCvUrl)}&embedded=true" 
+          src="https://docs.google.com/viewer?url=${encodeURIComponent(previewUrl)}&embedded=true" 
           title="CV Rasya Arfian Akbar" 
           style="width: 100%; height: 100%; border: none;">
         </iframe>
@@ -1073,9 +1083,30 @@ function openCvModal(preferredMode) {
   if (!cvModalOverlay) return;
   cvModalOverlay.classList.add('active');
   document.body.style.overflow = 'hidden';
+  // Selalu perbarui token cache setiap kali modal dibuka agar browser merender PDF paling baru dari Supabase
+  cvCacheVersion = Date.now();
   updateCvLinks(currentCvUrl);
   const initialMode = preferredMode || currentCvViewMode || 'pdf';
   switchCvView(initialMode);
+}
+
+function refreshCvDocument() {
+  cvCacheVersion = Date.now();
+  updateCvLinks(currentCvUrl);
+  if (currentCvViewMode === 'pdf') {
+    switchCvView('pdf');
+  }
+  if (cvSourceBadge) {
+    cvSourceBadge.innerHTML = '<i class="fa-solid fa-arrows-rotate fa-spin"></i> Memuat versi terbaru...';
+    setTimeout(() => {
+      cvSourceBadge.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Terhubung &amp; Tersinkronisasi Supabase';
+    }, 700);
+  }
+  showToast('Dokumen CV terbaru berhasil dimuat ulang!');
+}
+
+if (cvRefreshBtn) {
+  cvRefreshBtn.addEventListener('click', refreshCvDocument);
 }
 
 function closeCvModal() {
@@ -1109,6 +1140,7 @@ async function loadCvConfigFromSupabase() {
     }
 
     if (data && data.length > 0 && data[0].cv_url) {
+      cvCacheVersion = data[0].last_updated ? new Date(data[0].last_updated).getTime() : Date.now();
       updateCvLinks(data[0].cv_url);
       if (cvSourceBadge) {
         cvSourceBadge.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Terhubung &amp; Tersinkronisasi Supabase';
@@ -1128,6 +1160,7 @@ function setupCvRealtime() {
       .channel('cv-settings-sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'cv_settings' }, (payload) => {
         if (payload.new && payload.new.cv_url) {
+          cvCacheVersion = Date.now();
           updateCvLinks(payload.new.cv_url);
           if (cvModalOverlay && cvModalOverlay.classList.contains('active')) {
             openCvModal();
@@ -1206,17 +1239,20 @@ async function loadCertDocumentPreview(containerId, c) {
           </span>
         </div>
         
-        <div style="position: relative; height: 460px; background: #f1f5f9;">
-          <iframe 
-            src="${found.url}#toolbar=0&navpanes=0" 
-            class="cert-pdf-iframe" 
-            title="Sertifikat ${c.title}">
-          </iframe>
+        <div class="cert-pdf-container" style="position: relative; height: 440px; background: #0f172a;">
+          <object data="${found.url}" type="application/pdf" style="width: 100%; height: 100%; border: none;">
+            <iframe 
+              src="https://docs.google.com/viewer?url=${encodeURIComponent(found.url)}&embedded=true" 
+              class="cert-pdf-iframe" 
+              title="Sertifikat ${c.title}"
+              style="width: 100%; height: 100%; border: none;">
+            </iframe>
+          </object>
         </div>
 
         <div class="cert-doc-toolbar">
           <div class="cert-doc-meta">
-            <i class="fa-solid fa-circle-check" style="color: #10b981; font-size: 1.1rem;"></i>
+            <i class="fa-solid fa-circle-check" style="color: #10b981; font-size: 1.1rem; flex-shrink: 0;"></i>
             <span>Penerbit Resmi: <strong>${c.issuer}</strong></span>
           </div>
           <div class="cert-doc-actions">
@@ -1322,9 +1358,9 @@ function openCertModal(index) {
       <div class="cert-modal-icon">
         <i class="${getCertIconClass(c.icon)}"></i>
       </div>
-      <div>
+      <div style="flex: 1; min-width: 0;">
         <span class="cert-badge-status"><i class="fa-solid fa-circle-check"></i> Kredensial Terverifikasi</span>
-        <h2 style="font-family: var(--font-heading); font-size: 1.35rem; color: var(--text-heading); margin: 6px 0 2px;">${c.title}</h2>
+        <h2 class="cert-modal-title" style="font-family: var(--font-heading); font-size: 1.35rem; color: var(--text-heading); margin: 6px 0 2px;">${c.title}</h2>
         <span style="font-size: 0.84rem; color: var(--text-muted); font-weight: 600;">${c.date ? `Tanggal: ${c.date} · ` : `Tahun: ${c.year} · `}${c.issuer}</span>
       </div>
     </div>
