@@ -1,6 +1,6 @@
 /* ============================================================
-   PORTOFOLIO — script.js
-   Rasya Arfian Akbar — Web & Mobile Developer
+   PORTOFOLIO â€” script.js
+   Rasya Arfian Akbar â€” Web & Mobile Developer
    ============================================================ */
 
 'use strict';
@@ -279,7 +279,7 @@ const certificationsData = [
     icon: 'fa-brands fa-figma'
   },
   {
-    title: 'Dasar – dasar Node JS',
+    title: 'Dasar â€“ dasar Node JS',
     slug: 'dasar-nodejs',
     pdfUrl: `${CERTIFICATES_BASE_URL}dasar-nodejs.pdf`,
     year: '2026',
@@ -463,7 +463,7 @@ function initInteractiveCards() {
 function copyText(text, label) {
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(() => {
-      showToast(`${label || 'Teks'} berhasil disalin ke clipboard! 📋`);
+      showToast(`${label || 'Teks'} berhasil disalin ke clipboard! ðŸ“‹`);
     }).catch(() => {
       showToast(`${label || 'Teks'}: ${text}`);
     });
@@ -933,7 +933,7 @@ function renderCvFallback() {
 
       <div class="cv-doc-header">
         <h2 class="cv-doc-name">Rasya Arfian Akbar</h2>
-        <div class="cv-doc-role">Web &amp; Mobile Developer · D3 Manajemen Informatika Politeknik Astra</div>
+        <div class="cv-doc-role">Web &amp; Mobile Developer Â· D3 Manajemen Informatika Politeknik Astra</div>
         <div class="cv-doc-contacts">
           <span><i class="fa-solid fa-envelope"></i> rasyaarfiana@gmail.com</span>
           <span><i class="fa-solid fa-graduation-cap"></i> 0320240064@polytechnic.astra.ac.id</span>
@@ -955,15 +955,15 @@ function renderCvFallback() {
         <h3 class="cv-doc-section-title"><i class="fa-solid fa-graduation-cap"></i> Pendidikan</h3>
         <div class="cv-doc-item">
           <div class="cv-doc-item-title">
-            <span>Politeknik Astra — Cikarang, Indonesia</span>
-            <span>Agustus 2024 — Sekarang</span>
+            <span>Politeknik Astra â€” Cikarang, Indonesia</span>
+            <span>Agustus 2024 â€” Sekarang</span>
           </div>
-          <div class="cv-doc-item-sub">D3 Manajemen Informatika · GPA / IPK: 3.31 / 4.00</div>
+          <div class="cv-doc-item-sub">D3 Manajemen Informatika Â· GPA / IPK: 3.31 / 4.00</div>
         </div>
         <div class="cv-doc-item">
           <div class="cv-doc-item-title">
-            <span>SMA Plus PGRI Cibinong — Bogor, Indonesia</span>
-            <span>Juli 2021 — Juni 2024</span>
+            <span>SMA Plus PGRI Cibinong â€” Bogor, Indonesia</span>
+            <span>Juli 2021 â€” Juni 2024</span>
           </div>
           <div class="cv-doc-item-sub">Ilmu Pengetahuan Alam (IPA)</div>
         </div>
@@ -974,8 +974,8 @@ function renderCvFallback() {
         
         <div class="cv-doc-item">
           <div class="cv-doc-item-title">
-            <span>Chatbot Adenomyosis dan Endometriosis — BRIN</span>
-            <span>Juni 2026 — Sekarang</span>
+            <span>Chatbot Adenomyosis dan Endometriosis â€” BRIN</span>
+            <span>Juni 2026 â€” Sekarang</span>
           </div>
           <div class="cv-doc-item-sub">Project Member | Front-End Developer &amp; System Analyst</div>
           <p class="cv-doc-item-desc">Aplikasi chatbot konsultasi dan edukasi seputar penyakit kewanitaan bersama Badan Riset dan Inovasi Nasional (BRIN) menggunakan Python dan JavaScript.</p>
@@ -990,8 +990,8 @@ function renderCvFallback() {
 
         <div class="cv-doc-item">
           <div class="cv-doc-item-title">
-            <span>Booking Motor — Politeknik Astra</span>
-            <span>Juli 2026 — Agustus 2026</span>
+            <span>Booking Motor â€” Politeknik Astra</span>
+            <span>Juli 2026 â€” Agustus 2026</span>
           </div>
           <div class="cv-doc-item-sub">Project Member | Back-End Developer &amp; Front-End Developer</div>
           <p class="cv-doc-item-desc">Mengembangkan fungsi Booking motor untuk proyek migrasi PT Astra Honda Motor (AHM).</p>
@@ -1005,8 +1005,8 @@ function renderCvFallback() {
 
         <div class="cv-doc-item">
           <div class="cv-doc-item-title">
-            <span>Manajemen Asset — Politeknik Astra</span>
-            <span>Oktober 2025 — Februari 2026</span>
+            <span>Manajemen Asset â€” Politeknik Astra</span>
+            <span>Oktober 2025 â€” Februari 2026</span>
           </div>
           <div class="cv-doc-item-sub">Project Member | Full-stack Developer, UI/UX Designer &amp; System Analyst</div>
           <p class="cv-doc-item-desc">Membangun website inventaris PHP &amp; MySQL dengan fitur pelaporan maintenance barang.</p>
@@ -1020,8 +1020,8 @@ function renderCvFallback() {
 
         <div class="cv-doc-item">
           <div class="cv-doc-item-title">
-            <span>Migrasi Sistem Informasi Akademik Web — Politeknik Astra</span>
-            <span>September 2025 — Mei 2026</span>
+            <span>Migrasi Sistem Informasi Akademik Web â€” Politeknik Astra</span>
+            <span>September 2025 â€” Mei 2026</span>
           </div>
           <div class="cv-doc-item-sub">Project Member | Full-stack Developer</div>
           <p class="cv-doc-item-desc">Migrasi dan refactoring website SIA ke Next.js dan backend ASP.NET 8.0 dengan database SQL Server.</p>
@@ -1035,8 +1035,8 @@ function renderCvFallback() {
 
         <div class="cv-doc-item">
           <div class="cv-doc-item-title">
-            <span>Aplikasi Dekstop Karaoke Poprock — Politeknik Astra</span>
-            <span>Mei 2025 — Juli 2026</span>
+            <span>Aplikasi Dekstop Karaoke Poprock â€” Politeknik Astra</span>
+            <span>Mei 2025 â€” Juli 2026</span>
           </div>
           <div class="cv-doc-item-sub">Project Member | Fullstack Developer, UI/UX &amp; System Analyst</div>
           <p class="cv-doc-item-desc">Dua aplikasi desktop operasional staf dan kasir terintegrasi SQL Server.</p>
@@ -1050,8 +1050,8 @@ function renderCvFallback() {
 
         <div class="cv-doc-item">
           <div class="cv-doc-item-title">
-            <span>Aplikasi Dekstop Booking Hotel — Politeknik Astra</span>
-            <span>Desember 2024 — Februari 2025</span>
+            <span>Aplikasi Dekstop Booking Hotel â€” Politeknik Astra</span>
+            <span>Desember 2024 â€” Februari 2025</span>
           </div>
           <div class="cv-doc-item-sub">Project Member | Fullstack Developer, UI/UX &amp; System Analyst</div>
           <p class="cv-doc-item-desc">Aplikasi desktop booking hotel berbasis bahasa C dengan modul transaksi kamar dan member.</p>
@@ -1065,28 +1065,28 @@ function renderCvFallback() {
       <div class="cv-doc-section">
         <h3 class="cv-doc-section-title"><i class="fa-solid fa-certificate"></i> Sertifikasi &amp; Pelatihan</h3>
         <p class="cv-doc-item-desc">
-          • <strong>MikroTik Certified Network Associate (MTCNA)</strong> — Mikrotikls SIA (Riga, Latvia), 2026 (No: 2601NA2655)<br>
-          • <strong>Artificial Intelligence</strong> — Lembaga Kursus Bisa AI Academy, 2026 (No: 2026/506/69181)<br>
-          • <strong>Dasar – dasar Node JS</strong> — LPK &amp; LKP Bisa AI Academy, 2026 (No: 2026/412/69181)<br>
-          • <strong>Basic Excel</strong> — Lembaga Kursus Bisa AI Academy, 2026 (No: 2026/294/69181)<br>
-          • <strong>Dasar - Dasar Python</strong> — Lembaga Kursus Bisa AI Academy, 2026 (No: 2026/249/69181)<br>
-          • <strong>Python Fundamental</strong> — Aguna Course, 2025 (No: AC-315-33886729-97)<br>
-          • <strong>Linux Fundamental</strong> — Aguna Course, 2025 (No: AC-050-75298727-98)<br>
-          • <strong>Virtual Machine Fundamental</strong> — Aguna Course, 2025 (No: AC-446-15449133-19)<br>
-          • <strong>Simulasi Jaringan dengan PNETLab</strong> — Aguna Course, 2025 (No: AC-205-42646055-11)<br>
-          • <strong>Basic Figma: Pembuatan UI Aplikasi Mobile</strong>, 2026
+          â€¢ <strong>MikroTik Certified Network Associate (MTCNA)</strong> â€” Mikrotikls SIA (Riga, Latvia), 2026 (No: 2601NA2655)<br>
+          â€¢ <strong>Artificial Intelligence</strong> â€” Lembaga Kursus Bisa AI Academy, 2026 (No: 2026/506/69181)<br>
+          â€¢ <strong>Dasar â€“ dasar Node JS</strong> â€” LPK &amp; LKP Bisa AI Academy, 2026 (No: 2026/412/69181)<br>
+          â€¢ <strong>Basic Excel</strong> â€” Lembaga Kursus Bisa AI Academy, 2026 (No: 2026/294/69181)<br>
+          â€¢ <strong>Dasar - Dasar Python</strong> â€” Lembaga Kursus Bisa AI Academy, 2026 (No: 2026/249/69181)<br>
+          â€¢ <strong>Python Fundamental</strong> â€” Aguna Course, 2025 (No: AC-315-33886729-97)<br>
+          â€¢ <strong>Linux Fundamental</strong> â€” Aguna Course, 2025 (No: AC-050-75298727-98)<br>
+          â€¢ <strong>Virtual Machine Fundamental</strong> â€” Aguna Course, 2025 (No: AC-446-15449133-19)<br>
+          â€¢ <strong>Simulasi Jaringan dengan PNETLab</strong> â€” Aguna Course, 2025 (No: AC-205-42646055-11)<br>
+          â€¢ <strong>Basic Figma: Pembuatan UI Aplikasi Mobile</strong>, 2026
         </p>
       </div>
 
       <div class="cv-doc-section">
         <h3 class="cv-doc-section-title"><i class="fa-solid fa-users"></i> Organisasi &amp; Kepanitiaan</h3>
         <p class="cv-doc-item-desc">
-          • <strong>HIMAMI Politeknik Astra (2026 - 2027)</strong> — Ketua Departemen Divisi Publikasi, Humas dan Dokumentasi<br>
-          • <strong>Seminar Forum Ilmiah 2026 (Mei 2026)</strong> — Koordinator Divisi Publikasi, Humas dan Dokumentasi<br>
-          • <strong>HIMAMI Politeknik Astra (2025 - 2026)</strong> — Anggota Divisi Publikasi, Humas dan Dokumentasi<br>
-          • <strong>Hello Project 2025 &amp; IDENTITAS 2025</strong> — Koordinator Publikasi, Desain dan Dokumentasi<br>
-          • <strong>SPARTCO 2025</strong> — Anggota Panitia Publikasi, Desain dan Dokumentasi<br>
-          • <strong>UI/UX Training (2025)</strong> — Anggota Panitia Publikasi, Desain dan Dokumentasi
+          â€¢ <strong>HIMAMI Politeknik Astra (2026 - 2027)</strong> â€” Ketua Departemen Divisi Publikasi, Humas dan Dokumentasi<br>
+          â€¢ <strong>Seminar Forum Ilmiah 2026 (Mei 2026)</strong> â€” Koordinator Divisi Publikasi, Humas dan Dokumentasi<br>
+          â€¢ <strong>HIMAMI Politeknik Astra (2025 - 2026)</strong> â€” Anggota Divisi Publikasi, Humas dan Dokumentasi<br>
+          â€¢ <strong>Hello Project 2025 &amp; IDENTITAS 2025</strong> â€” Koordinator Publikasi, Desain dan Dokumentasi<br>
+          â€¢ <strong>SPARTCO 2025</strong> â€” Anggota Panitia Publikasi, Desain dan Dokumentasi<br>
+          â€¢ <strong>UI/UX Training (2025)</strong> â€” Anggota Panitia Publikasi, Desain dan Dokumentasi
         </p>
       </div>
     </div>
@@ -1388,10 +1388,10 @@ function openCertModal(index) {
     .split('\n\n')
     .map(p => {
       const trimmed = p.trim();
-      if (trimmed.startsWith('Poin Pembahasan') || trimmed.includes('•')) {
+      if (trimmed.startsWith('Poin Pembahasan') || trimmed.includes('â€¢')) {
         const lines = trimmed.split('\n');
-        const header = lines[0].includes('•') ? '' : `<p style="font-weight:700; color:var(--text-heading); margin:12px 0 6px;">${lines[0]}</p>`;
-        const items = lines.filter(l => l.includes('•')).map(l => `<li style="margin-bottom:6px;">${l.replace(/^•\s*/, '')}</li>`).join('');
+        const header = lines[0].includes('â€¢') ? '' : `<p style="font-weight:700; color:var(--text-heading); margin:12px 0 6px;">${lines[0]}</p>`;
+        const items = lines.filter(l => l.includes('â€¢')).map(l => `<li style="margin-bottom:6px;">${l.replace(/^â€¢\s*/, '')}</li>`).join('');
         return header + (items ? `<ul style="margin:0 0 10px 18px; padding:0; color:var(--text-body); line-height:1.65;">${items}</ul>` : '');
       }
       return `<p style="margin-bottom:12px; line-height:1.7;">${trimmed}</p>`;
@@ -1406,7 +1406,7 @@ function openCertModal(index) {
       <div style="flex: 1; min-width: 0;">
         <span class="cert-badge-status"><i class="fa-solid fa-circle-check"></i> Kredensial Terverifikasi</span>
         <h2 class="cert-modal-title" style="font-family: var(--font-heading); font-size: 1.35rem; color: var(--text-heading); margin: 6px 0 2px;">${c.title}</h2>
-        <span style="font-size: 0.84rem; color: var(--text-muted); font-weight: 600;">${c.date ? `Tanggal: ${c.date} · ` : `Tahun: ${c.year} · `}${c.issuer}</span>
+        <span style="font-size: 0.84rem; color: var(--text-muted); font-weight: 600;">${c.date ? `Tanggal: ${c.date} Â· ` : `Tahun: ${c.year} Â· `}${c.issuer}</span>
       </div>
     </div>
 
@@ -1441,7 +1441,7 @@ function openCertModal(index) {
     </div>
 
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top: 4px;">
-      <span style="font-size: 0.82rem; color: var(--text-muted);"><i class="fa-solid fa-barcode"></i> ID / No. Sertifikat: <strong>${c.credentialId}</strong>${c.verifyUrl ? ` · <a href="${c.verifyUrl}" target="_blank" rel="noopener" style="color:var(--blue-600); text-decoration:underline; font-weight:600;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Cek Verifikasi</a>` : ''}</span>
+      <span style="font-size: 0.82rem; color: var(--text-muted);"><i class="fa-solid fa-barcode"></i> ID / No. Sertifikat: <strong>${c.credentialId}</strong>${c.verifyUrl ? ` Â· <a href="${c.verifyUrl}" target="_blank" rel="noopener" style="color:var(--blue-600); text-decoration:underline; font-weight:600;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Cek Verifikasi</a>` : ''}</span>
       <button class="btn-primary btn-sm" onclick="closeCertModal()">
         <i class="fa-solid fa-check"></i> Tutup
       </button>
@@ -1803,6 +1803,19 @@ function animateCounters() {
 function animateSkillBars() {
   document.querySelectorAll('.skill-bar-fill').forEach(bar => {
     bar.style.width = bar.dataset.width + '%';
+  });
+
+  document.querySelectorAll('.skill-segments').forEach((segContainer, itemIdx) => {
+    const level = parseInt(segContainer.dataset.level || '3', 10);
+    const segs = segContainer.querySelectorAll('.seg');
+    segContainer.classList.add('animated');
+    segs.forEach((seg, idx) => {
+      if (idx < level) {
+        setTimeout(() => {
+          seg.classList.add('active');
+        }, (itemIdx * 45) + (idx * 90));
+      }
+    });
   });
 }
 
