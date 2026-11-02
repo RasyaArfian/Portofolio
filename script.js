@@ -29,6 +29,51 @@ function getCvFreshUrl(url) {
 }
 
 // ============================================================
+// PROFILE IMAGE FALLBACK & CACHE BUSTING
+// ============================================================
+const PROFILE_CANDIDATES = [
+  `${SUPABASE_URL}/storage/v1/object/public/project-images/Profile.PNG`,
+  `${SUPABASE_URL}/storage/v1/object/public/project-images/Profile.JPG`,
+  `${SUPABASE_URL}/storage/v1/object/public/project-images/profile.png`,
+  `${SUPABASE_URL}/storage/v1/object/public/project-images/profile.jpg`,
+  `${SUPABASE_URL}/storage/v1/object/public/project-images/Profile%20(1).JPG`,
+  'images/profile.jpg'
+];
+
+window.handleProfileImgFallback = function handleProfileImgFallback(img) {
+  if (!img) return;
+  let idx = parseInt(img.dataset.fallbackIdx || '-1', 10);
+  const currentBase = (img.src || '').split('?')[0];
+
+  while (idx + 1 < PROFILE_CANDIDATES.length) {
+    idx++;
+    const nextUrl = PROFILE_CANDIDATES[idx];
+    if (nextUrl.split('?')[0] !== currentBase) {
+      img.dataset.fallbackIdx = String(idx);
+      const sep = nextUrl.startsWith('http') ? `?t=${Date.now()}` : '';
+      img.src = nextUrl + sep;
+      return;
+    }
+  }
+  img.onerror = null;
+};
+
+function syncProfileImagesFromSupabase() {
+  const ts = Date.now();
+  const heroImg = document.getElementById('profile-img');
+  const aboutImg = document.getElementById('about-profile-img') || document.querySelector('.about-img');
+
+  if (heroImg && heroImg.src && heroImg.src.startsWith('http')) {
+    const cleanHero = heroImg.src.split('?')[0];
+    heroImg.src = `${cleanHero}?t=${ts}`;
+  }
+  if (aboutImg && aboutImg.src && aboutImg.src.startsWith('http')) {
+    const cleanAbout = aboutImg.src.split('?')[0];
+    aboutImg.src = `${cleanAbout}?t=${ts}`;
+  }
+}
+
+// ============================================================
 // DATA PROYEK DENGAN METODE STAR (Problem - Solution - Impact)
 // ============================================================
 const MAX_PROJECT_IMAGES = 3;
@@ -2026,6 +2071,7 @@ window.copyText = copyText;
 // ============================================================
 // INITIALIZATION
 // ============================================================
+syncProfileImagesFromSupabase();
 renderProjects(currentProjects);
 initInteractiveCards();
 loadProjectsFromSupabase();
