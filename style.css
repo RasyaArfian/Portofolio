@@ -2636,13 +2636,8 @@ body.dark-theme .cmd-item:hover {
   transition: var(--transition);
 }
 
-.gallery-nav-btn.prev {
-  left: 14px;
-}
-
-.gallery-nav-btn.next {
-  right: 14px;
-}
+.gallery-nav-btn.prev { left: 14px; }
+.gallery-nav-btn.next { right: 14px; }
 
 .gallery-nav-btn:hover {
   background: var(--blue-600);
@@ -2729,7 +2724,7 @@ body.dark-theme .cmd-item:hover {
   background: var(--blue-600);
   border-radius: 50%;
   z-index: 2;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
 }
 
 /* Modal Dedicated Team Documentation Card */
@@ -2864,11 +2859,9 @@ body.dark-theme .cmd-item:hover {
   .team-doc-content-row {
     grid-template-columns: 1fr;
   }
-
   .modal-gallery.is-mobile-gallery .gallery-main {
     height: 420px;
   }
-
   .mobile-phone-frame {
     height: 85%;
   }
