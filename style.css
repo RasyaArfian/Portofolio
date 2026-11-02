@@ -1222,12 +1222,12 @@ body.dark-theme .skill-level-badge.level-menengah {
   inset: 0;
   width: 0%;
   border-radius: var(--radius-full);
-  background: linear-gradient(90deg, var(--blue-700), var(--blue-400));
+  background: var(--blue-600);
   transition: width 0.55s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.skill-segments[data-level="4"] .seg::after {
-  background: linear-gradient(90deg, var(--blue-600), #10b981);
+body.dark-theme .skill-segments .seg::after {
+  background: var(--blue-500);
 }
 
 .skill-segments.animated .seg.active::after {
@@ -1245,7 +1245,7 @@ body.dark-theme .skill-level-badge.level-menengah {
   height: 100%;
   width: 0%;
   border-radius: var(--radius-full);
-  background: linear-gradient(90deg, var(--blue-700), var(--blue-400));
+  background: var(--blue-600);
   transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
