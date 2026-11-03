@@ -29,9 +29,10 @@ function getCvFreshUrl(url) {
 }
 
 // ============================================================
-// PROFILE IMAGE FALLBACK & CACHE BUSTING
+// PROFILE IMAGE FALLBACK, DATABASE TABLE & CACHE BUSTING
 // ============================================================
 const PROFILE_CANDIDATES = [
+  `${SUPABASE_URL}/storage/v1/object/public/project-images/Profile.jpg`,
   `${SUPABASE_URL}/storage/v1/object/public/project-images/Profile.PNG`,
   `${SUPABASE_URL}/storage/v1/object/public/project-images/Profile.JPG`,
   `${SUPABASE_URL}/storage/v1/object/public/project-images/profile.png`,
@@ -58,19 +59,72 @@ window.handleProfileImgFallback = function handleProfileImgFallback(img) {
   img.onerror = null;
 };
 
-function syncProfileImagesFromSupabase() {
+function applyProfileUrls(heroUrl, aboutUrl, cacheToken) {
+  const ts = cacheToken || Date.now();
+  const heroImg = document.getElementById('profile-img');
+  const aboutImg = document.getElementById('about-profile-img') || document.querySelector('.about-img');
+
+  if (heroImg && heroUrl) {
+    const cleanHero = heroUrl.trim().split('?')[0];
+    heroImg.dataset.fallbackIdx = '-1';
+    heroImg.src = cleanHero.startsWith('http') ? `${cleanHero}?t=${ts}` : cleanHero;
+  }
+  if (aboutImg && (aboutUrl || heroUrl)) {
+    const targetAbout = (aboutUrl || heroUrl).trim().split('?')[0];
+    aboutImg.dataset.fallbackIdx = '-1';
+    aboutImg.src = targetAbout.startsWith('http') ? `${targetAbout}?t=${ts}` : targetAbout;
+  }
+}
+
+async function loadProfileConfigFromSupabase() {
   const ts = Date.now();
   const heroImg = document.getElementById('profile-img');
   const aboutImg = document.getElementById('about-profile-img') || document.querySelector('.about-img');
 
+  // Segarkan URL default dengan cache-buster terlebih dahulu
   if (heroImg && heroImg.src && heroImg.src.startsWith('http')) {
-    const cleanHero = heroImg.src.split('?')[0];
-    heroImg.src = `${cleanHero}?t=${ts}`;
+    heroImg.src = `${heroImg.src.split('?')[0]}?t=${ts}`;
   }
   if (aboutImg && aboutImg.src && aboutImg.src.startsWith('http')) {
-    const cleanAbout = aboutImg.src.split('?')[0];
-    aboutImg.src = `${cleanAbout}?t=${ts}`;
+    aboutImg.src = `${aboutImg.src.split('?')[0]}?t=${ts}`;
   }
+
+  if (!supabaseClient) return;
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('profile_settings')
+      .select('hero_image_url, about_image_url, image_url, updated_at')
+      .order('id', { ascending: false })
+      .limit(1);
+
+    if (!error && data && data.length > 0) {
+      const row = data[0];
+      const heroUrl = row.hero_image_url || row.image_url;
+      const aboutUrl = row.about_image_url || row.image_url || row.hero_image_url;
+      const version = row.updated_at ? new Date(row.updated_at).getTime() : Date.now();
+      if (heroUrl || aboutUrl) {
+        applyProfileUrls(heroUrl, aboutUrl, version);
+      }
+    }
+  } catch (err) { }
+}
+
+function setupProfileRealtime() {
+  if (!supabaseClient) return;
+  try {
+    supabaseClient
+      .channel('profile-settings-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profile_settings' }, (payload) => {
+        if (payload.new) {
+          const row = payload.new;
+          const heroUrl = row.hero_image_url || row.image_url;
+          const aboutUrl = row.about_image_url || row.image_url || row.hero_image_url;
+          applyProfileUrls(heroUrl, aboutUrl, Date.now());
+        }
+      })
+      .subscribe();
+  } catch (err) { }
 }
 
 // ============================================================
@@ -2084,7 +2138,8 @@ window.copyText = copyText;
 // ============================================================
 // INITIALIZATION
 // ============================================================
-syncProfileImagesFromSupabase();
+loadProfileConfigFromSupabase();
+setupProfileRealtime();
 renderProjects(currentProjects);
 initInteractiveCards();
 loadProjectsFromSupabase();
