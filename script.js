@@ -1,874 +1,1056 @@
-/* ============================================================
-   PORTOFOLIO — script.js
-   Rasya Arfian Akbar — Web & Mobile Developer
-   ============================================================ */
+/* ==========================================================================
+   RASYA ARFIAN AKBAR — script.js
+   Features:
+   1. 1% -> 100% Smooth Preloader with Status Steps & Curtain Reveal
+   2. 60fps Interactive Hanging Lanyard Physics (Spring + Pendulum + Drag/Pull)
+   3. Dynamic SVG Strap with Curved TextPath & 3D Card Tilt/Flip
+   4. Typing Role Rotator, Scroll Reveal, Live Project Filter/Search & Tabs
+   ========================================================================== */
 
 'use strict';
 
-// ============================================================
-// SUPABASE CLIENT & CONFIGURATION
-// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  initPreloader();
+  initNavbarAndScroll();
+  initRoleRotator();
+  initProjectFilterAndSearch();
+  initCertShowcaseCarousel();
+  initTimelineTabs();
+  initPdfModal();
+  initSkillTabs();
+  initScrollReveal();
+  initCopyButtons();
+});
+
+/* ==========================================================================
+   1. PRELOADER: 1% TO 100% ANIMATION
+   ========================================================================== */
+function initPreloader() {
+  const preloader = document.getElementById('preloader');
+  const numEl = document.getElementById('preloader-num');
+  const barEl = document.getElementById('preloader-bar');
+  const statusEl = document.getElementById('preloader-status-text');
+
+  if (!preloader || !numEl || !barEl) {
+    initLanyardPhysics(true);
+    return;
+  }
+
+  document.body.classList.add('is-loading');
+
+  const statusMessages = [
+    { threshold: 1, text: 'MEMUAT PROFIL & ARSITEKTUR UI...' },
+    { threshold: 28, text: 'MENYIAPKAN 06 STUDI KASUS PROYEK...' },
+    { threshold: 58, text: 'MEMVERIFIKASI 10 SERTIFIKASI & KOMPETENSI...' },
+    { threshold: 84, text: 'MENGAKTIFKAN FISIKA LANYARD INTERAKTIF...' },
+    { threshold: 100, text: 'SIAP DITAMPILKAN — 100%' }
+  ];
+
+  let currentVal = 1;
+  const duration = 2100; // 2.1 seconds total smooth count from 1% to 100%
+  const startTime = performance.now();
+
+  function easeInOutCubic(t) {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }
+
+  function step(now) {
+    const elapsed = now - startTime;
+    const rawProgress = Math.min(elapsed / duration, 1);
+    const easedProgress = easeInOutCubic(rawProgress);
+
+    currentVal = Math.max(1, Math.min(100, Math.round(1 + easedProgress * 99)));
+
+    numEl.textContent = String(currentVal);
+    barEl.style.width = `${currentVal}%`;
+
+    if (statusEl) {
+      for (let i = statusMessages.length - 1; i >= 0; i--) {
+        if (currentVal >= statusMessages[i].threshold) {
+          statusEl.textContent = statusMessages[i].text;
+          break;
+        }
+      }
+    }
+
+    if (rawProgress < 1) {
+      requestAnimationFrame(step);
+    } else {
+      numEl.textContent = '100';
+      barEl.style.width = '100%';
+      setTimeout(() => {
+        preloader.classList.add('preloader-done');
+        document.body.classList.remove('is-loading');
+        // Trigger Lanyard drop & Hero counters right as curtain lifts
+        initLanyardPhysics(true);
+        animateHeroCounters();
+      }, 220);
+    }
+  }
+
+  requestAnimationFrame(step);
+}
+
+/* ==========================================================================
+   2. INTERACTIVE HANGING LANYARD PHYSICS ENGINE (SPRING + PENDULUM)
+   ========================================================================== */
+function initLanyardPhysics(dropFromTop = false) {
+  const stage = document.getElementById('lanyard-stage');
+  const cardWrapper = document.getElementById('lanyard-card-wrapper');
+  const pathBack = document.getElementById('lanyard-path-back');
+  const pathMain = document.getElementById('lanyard-path-main');
+  const pathStitch = document.getElementById('lanyard-path-stitch');
+  const btnFlip = document.getElementById('btn-lanyard-flip');
+
+  if (!stage || !cardWrapper || !pathMain) return;
+
+  const CARD_W = 292;
+  const REST_ROPE_LEN = 135; // Resting distance from top mount to card clasp
+
+  // Physics state
+  let stageRect = stage.getBoundingClientRect();
+  let anchorX = stageRect.width / 2;
+  let anchorY = 12; // Inside SVG coordinate space
+
+  // Position of the clasp (top-center of the card)
+  let posX = anchorX + (dropFromTop ? 42 : 0);
+  let posY = dropFromTop ? -90 : anchorY + REST_ROPE_LEN;
+
+  // Velocity
+  let velX = dropFromTop ? -6 : 0;
+  let velY = dropFromTop ? 14 : 0;
+
+  // Card rotation & angular velocity
+  let angleZ = dropFromTop ? 14 : 0;
+  let angularVelZ = 0;
+  let tiltX = 0;
+  let tiltY = 0;
+
+  // Middle control point of the strap for realistic ribbon curve
+  let midX = anchorX;
+  let midY = (anchorY + posY) / 2;
+  let midVelX = 0;
+  let midVelY = 0;
+
+  // Dragging state
+  let isDragging = false;
+  let dragOffsetX = 0;
+  let dragOffsetY = 0;
+  let pointerStartX = 0;
+  let pointerStartY = 0;
+  let lastPointerX = 0;
+  let lastPointerY = 0;
+
+  // Constants for realistic spring-pendulum feel
+  const GRAVITY = 1.15;
+  const SPRING_K = 0.085;
+  const DAMPING = 0.91;
+  const ANGULAR_DAMPING = 0.88;
+
+  function updateStageMetrics() {
+    stageRect = stage.getBoundingClientRect();
+    anchorX = stageRect.width / 2;
+    if (!isDragging && Math.abs(velX) < 0.1 && Math.abs(velY) < 0.1) {
+      posX = anchorX;
+    }
+  }
+
+  window.addEventListener('resize', updateStageMetrics);
+
+  // Pointer Events (Mouse + Touch)
+  cardWrapper.addEventListener('pointerdown', (e) => {
+    // Ignore if clicking a link inside card
+    if (e.target.closest('a')) return;
+
+    isDragging = true;
+    cardWrapper.classList.add('is-dragging');
+    cardWrapper.setPointerCapture(e.pointerId);
+
+    stageRect = stage.getBoundingClientRect();
+    const clientX = e.clientX - stageRect.left;
+    const clientY = e.clientY - stageRect.top + 45; // Offset for SVG top=-45px
+
+    dragOffsetX = clientX - posX;
+    dragOffsetY = clientY - posY;
+    pointerStartX = e.clientX;
+    pointerStartY = e.clientY;
+    lastPointerX = clientX;
+    lastPointerY = clientY;
+
+    velX = 0;
+    velY = 0;
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+
+    stageRect = stage.getBoundingClientRect();
+    const clientX = e.clientX - stageRect.left;
+    const clientY = e.clientY - stageRect.top + 45;
+
+    const rawTargetX = clientX - dragOffsetX;
+    const rawTargetY = clientY - dragOffsetY;
+
+    // Elastic resistance when pulling far from anchor
+    const dx = rawTargetX - anchorX;
+    const dy = Math.max(30, rawTargetY - anchorY);
+    const dist = Math.hypot(dx, dy);
+    const maxStretch = 290;
+
+    let constrainedDist = dist;
+    if (dist > REST_ROPE_LEN) {
+      const extra = dist - REST_ROPE_LEN;
+      constrainedDist = REST_ROPE_LEN + extra * 0.58;
+      if (constrainedDist > maxStretch) constrainedDist = maxStretch;
+    }
+
+    const scale = dist > 0 ? constrainedDist / dist : 1;
+    posX = anchorX + dx * scale;
+    posY = anchorY + dy * scale;
+
+    // Track pointer velocity for release throw
+    velX = (clientX - lastPointerX) * 0.45;
+    velY = (clientY - lastPointerY) * 0.45;
+    lastPointerX = clientX;
+    lastPointerY = clientY;
+
+    // Dynamic 3D tilt while pulling
+    const pullAngle = Math.atan2(posX - anchorX, posY - anchorY) * (180 / Math.PI);
+    angleZ = -pullAngle * 0.55 + velX * 0.4;
+    tiltY = Math.max(-22, Math.min(22, (posX - anchorX) * 0.12));
+    tiltX = Math.max(-18, Math.min(18, (posY - (anchorY + REST_ROPE_LEN)) * -0.08));
+  });
+
+  function endDrag(e) {
+    if (!isDragging) return;
+    isDragging = false;
+    cardWrapper.classList.remove('is-dragging');
+    try {
+      if (e && e.pointerId !== undefined) {
+        cardWrapper.releasePointerCapture(e.pointerId);
+      }
+    } catch (_) { }
+  }
+
+  window.addEventListener('pointerup', endDrag);
+  window.addEventListener('pointercancel', endDrag);
+
+  // Flip ID Card Button
+  if (btnFlip) {
+    btnFlip.addEventListener('click', () => {
+      cardWrapper.classList.toggle('is-flipped');
+      // Give a small physical impulse when flipping
+      velY -= 4.5;
+      velX += (Math.random() > 0.5 ? 1 : -1) * 3.5;
+      angularVelZ += 5;
+    });
+  }
+
+  // Subtle sway impulse on window scroll
+  let lastScrollY = window.scrollY;
+  window.addEventListener('scroll', () => {
+    if (isDragging) return;
+    const delta = window.scrollY - lastScrollY;
+    lastScrollY = window.scrollY;
+    if (Math.abs(delta) > 2 && window.scrollY < 700) {
+      velY += Math.max(-3.5, Math.min(3.5, delta * 0.08));
+      velX += Math.sin(window.scrollY * 0.03) * 0.45;
+    }
+  }, { passive: true });
+
+  // 60fps Physics Simulation Loop
+  function tick(time) {
+    if (!isDragging) {
+      // Vector from anchor to card clasp
+      const dx = posX - anchorX;
+      const dy = posY - anchorY;
+      const dist = Math.hypot(dx, dy) || 1;
+
+      // 1. Gravity force downwards
+      velY += GRAVITY;
+
+      // 2. Spring tension along the strap (Hooke's Law)
+      const stretch = dist - REST_ROPE_LEN;
+      const forceMag = stretch * SPRING_K;
+      const fx = -(dx / dist) * forceMag;
+      const fy = -(dy / dist) * forceMag;
+
+      velX += fx;
+      velY += fy;
+
+      // 3. Horizontal restoring force (pendulum centering + subtle idle breeze)
+      const idleBreeze = Math.sin(time * 0.0018) * 0.045;
+      velX += -dx * 0.012 + idleBreeze;
+
+      // Apply velocity damping
+      velX *= DAMPING;
+      velY *= DAMPING;
+
+      posX += velX;
+      posY += velY;
+
+      // Prevent card from going above the ceiling mount
+      if (posY < anchorY + 45) {
+        posY = anchorY + 45;
+        velY *= -0.4;
+      }
+
+      // 4. Angular pendulum dynamics for card rotation
+      const targetAngle = -Math.atan2(dx, dy) * (180 / Math.PI) * 0.45 - velX * 0.85;
+      const angleDiff = targetAngle - angleZ;
+      angularVelZ += angleDiff * 0.14;
+      angularVelZ *= ANGULAR_DAMPING;
+      angleZ += angularVelZ;
+
+      // Smoothly relax 3D tilt back to neutral
+      tiltX += (0 - tiltX) * 0.12;
+      tiltY += (dx * 0.06 - tiltY) * 0.12;
+    }
+
+    // Compute middle control point of the SVG strap for a realistic ribbon curve
+    const targetMidX = (anchorX + posX) * 0.5 + velX * 1.8;
+    const slackSag = Math.max(0, REST_ROPE_LEN - Math.hypot(posX - anchorX, posY - anchorY)) * 0.35;
+    const targetMidY = (anchorY + posY) * 0.5 + slackSag;
+
+    midVelX = (midVelX + (targetMidX - midX) * 0.25) * 0.72;
+    midVelY = (midVelY + (targetMidY - midY) * 0.25) * 0.72;
+    midX += midVelX;
+    midY += midVelY;
+
+    // Update SVG Strap Paths (Quadratic Bezier from ceiling mount to clasp)
+    const dStr = `M ${anchorX.toFixed(1)} ${anchorY.toFixed(1)} Q ${midX.toFixed(1)} ${midY.toFixed(1)} ${posX.toFixed(1)} ${(posY + 6).toFixed(1)}`;
+    pathMain.setAttribute('d', dStr);
+    if (pathBack) pathBack.setAttribute('d', dStr);
+    if (pathStitch) pathStitch.setAttribute('d', dStr);
+
+    // Position & 3D Transform the ID Card Wrapper
+    const cardLeft = posX - CARD_W / 2;
+    const cardTop = posY - 12; // Align clasp with SVG strap end
+    cardWrapper.style.transform = `translate3d(${cardLeft.toFixed(1)}px, ${cardTop.toFixed(1)}px, 0) rotateZ(${angleZ.toFixed(2)}deg) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg)`;
+
+    requestAnimationFrame(tick);
+  }
+
+  requestAnimationFrame(tick);
+}
+
+/* ==========================================================================
+   3. HERO METRIC COUNTERS
+   ========================================================================== */
+function animateHeroCounters() {
+  const counters = document.querySelectorAll('[data-counter]');
+  counters.forEach((el) => {
+    const target = parseFloat(el.dataset.counter);
+    const isDecimal = el.dataset.decimal === 'true';
+    const suffix = el.dataset.suffix || '';
+    const duration = 1400;
+    const start = performance.now();
+
+    function updateCounter(now) {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const val = target * eased;
+
+      if (isDecimal) {
+        el.textContent = val.toFixed(2) + suffix;
+      } else {
+        const num = Math.round(val);
+        el.textContent = (num < 10 ? `0${num}` : String(num)) + suffix;
+      }
+
+      if (progress < 1) {
+        requestAnimationFrame(updateCounter);
+      }
+    }
+
+    requestAnimationFrame(updateCounter);
+  });
+}
+
+/* ==========================================================================
+   4. TYPING ROLE ROTATOR
+   ========================================================================== */
+function initRoleRotator() {
+  const el = document.getElementById('typed-role-text');
+  if (!el) return;
+
+  const roles = [
+    'Web & Mobile Developer',
+    'System Analyst',
+    'UI/UX Designer (Figma)',
+    'Database & Backend Engineer'
+  ];
+
+  let roleIdx = 0;
+  let charIdx = 0;
+  let isDeleting = false;
+
+  function typeStep() {
+    const currentRole = roles[roleIdx];
+    if (!isDeleting) {
+      charIdx++;
+      el.textContent = currentRole.slice(0, charIdx);
+      if (charIdx === currentRole.length) {
+        isDeleting = true;
+        setTimeout(typeStep, 1900);
+        return;
+      }
+      setTimeout(typeStep, 65);
+    } else {
+      charIdx--;
+      el.textContent = currentRole.slice(0, charIdx);
+      if (charIdx === 0) {
+        isDeleting = false;
+        roleIdx = (roleIdx + 1) % roles.length;
+        setTimeout(typeStep, 320);
+        return;
+      }
+      setTimeout(typeStep, 35);
+    }
+  }
+
+  typeStep();
+}
+
+/* ==========================================================================
+   5. NAVBAR & SCROLL PROGRESS
+   ========================================================================== */
+function initNavbarAndScroll() {
+  const navbar = document.getElementById('arch-navbar');
+  const scrollBar = document.getElementById('scroll-progress-fill');
+  const mobileBtn = document.getElementById('mobile-menu-btn');
+  const navLinksWrap = document.getElementById('arch-nav-links');
+  const navLinks = document.querySelectorAll('.arch-nav-link');
+
+  // Mobile Menu Toggle
+  if (mobileBtn && navLinksWrap) {
+    mobileBtn.addEventListener('click', () => {
+      navLinksWrap.classList.toggle('nav-open');
+    });
+    navLinks.forEach((link) => {
+      link.addEventListener('click', () => {
+        navLinksWrap.classList.remove('nav-open');
+      });
+    });
+  }
+
+  // Scroll Progress & Active Section Spy
+  const sections = document.querySelectorAll('section[id]');
+  window.addEventListener('scroll', () => {
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+
+    if (scrollBar) scrollBar.style.width = `${pct}%`;
+    if (navbar) navbar.classList.toggle('scrolled', scrollTop > 30);
+
+    let currentSec = '';
+    sections.forEach((sec) => {
+      const top = sec.offsetTop - 160;
+      if (scrollTop >= top) {
+        currentSec = sec.getAttribute('id');
+      }
+    });
+
+    navLinks.forEach((link) => {
+      const href = link.getAttribute('href');
+      link.classList.toggle('active', href === `#${currentSec}`);
+    });
+  }, { passive: true });
+}
+
+/* ==========================================================================
+   6. PROJECTS: DATA-DRIVEN RENDER + SUPABASE SYNC + FILTER + FULL DETAIL PAGE
+   ========================================================================== */
 const SUPABASE_URL = 'https://dhmabndpzrzacjrtoank.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRobWFibmRwenJ6YWNqcnRvYW5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzNDAxMjksImV4cCI6MjEwNjkxNjEyOX0.FCHEbO5LuAkPkIZZ4kkRIxmCkT40nhHm0shNYm4UcTA';
+const PROJECT_IMAGES_BUCKET = 'project-images';
+const PROJ_IMG_BASE = `${SUPABASE_URL}/storage/v1/object/public/${PROJECT_IMAGES_BUCKET}/projects/`;
+const DEFAULT_CV_URL = `${SUPABASE_URL}/storage/v1/object/public/${PROJECT_IMAGES_BUCKET}/CV-Rasya-Arfian-Akbar.pdf`;
 
 let supabaseClient = null;
 if (window.supabase && typeof window.supabase.createClient === 'function') {
-  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  try {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } catch (err) {
+    supabaseClient = null;
+  }
 }
 
-// URL default CV di Supabase Storage
-const DEFAULT_CV_URL = 'https://dhmabndpzrzacjrtoank.supabase.co/storage/v1/object/public/project-images/CV-Rasya-Arfian-Akbar.pdf';
 let currentCvUrl = DEFAULT_CV_URL;
-let currentCvViewMode = 'pdf';
 let cvCacheVersion = Date.now();
 
-function getCvFreshUrl(url) {
-  const base = url || currentCvUrl || DEFAULT_CV_URL;
-  const sep = base.includes('?') ? '&' : '?';
-  return `${base}${sep}t=${cvCacheVersion}`;
+function escHtml(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
-// ============================================================
-// PROFILE IMAGE FALLBACK, DATABASE TABLE & CACHE BUSTING
-// ============================================================
-const PROFILE_CANDIDATES = [
-  `${SUPABASE_URL}/storage/v1/object/public/project-images/Profile.jpg`,
-  `${SUPABASE_URL}/storage/v1/object/public/project-images/Profile.PNG`,
-  `${SUPABASE_URL}/storage/v1/object/public/project-images/Profile.JPG`,
-  `${SUPABASE_URL}/storage/v1/object/public/project-images/profile.png`,
-  `${SUPABASE_URL}/storage/v1/object/public/project-images/profile.jpg`,
-  `${SUPABASE_URL}/storage/v1/object/public/project-images/Profile%20(1).JPG`,
-  'images/profile.jpg'
-];
-
-window.handleProfileImgFallback = function handleProfileImgFallback(img) {
-  if (!img) return;
-  let idx = parseInt(img.dataset.fallbackIdx || '-1', 10);
-  const currentBase = (img.src || '').split('?')[0];
-
-  while (idx + 1 < PROFILE_CANDIDATES.length) {
-    idx++;
-    const nextUrl = PROFILE_CANDIDATES[idx];
-    if (nextUrl.split('?')[0] !== currentBase) {
-      img.dataset.fallbackIdx = String(idx);
-      const sep = nextUrl.startsWith('http') ? `?t=${Date.now()}` : '';
-      img.src = nextUrl + sep;
-      return;
-    }
-  }
-  img.onerror = null;
-};
-
-function applyProfileUrls(heroUrl, aboutUrl, cacheToken) {
-  const ts = cacheToken || Date.now();
-  const heroImg = document.getElementById('profile-img');
-  const aboutImg = document.getElementById('about-profile-img') || document.querySelector('.about-img');
-
-  if (heroImg && heroUrl) {
-    const cleanHero = heroUrl.trim().split('?')[0];
-    heroImg.dataset.fallbackIdx = '-1';
-    heroImg.src = cleanHero.startsWith('http') ? `${cleanHero}?t=${ts}` : cleanHero;
-  }
-  if (aboutImg && (aboutUrl || heroUrl)) {
-    const targetAbout = (aboutUrl || heroUrl).trim().split('?')[0];
-    aboutImg.dataset.fallbackIdx = '-1';
-    aboutImg.src = targetAbout.startsWith('http') ? `${targetAbout}?t=${ts}` : targetAbout;
-  }
+function projImg(folder, file, caption, team) {
+  return { src: `${PROJ_IMG_BASE}${folder}/${file}`, caption: caption || '', team: Boolean(team) };
 }
 
-async function loadProfileConfigFromSupabase() {
-  const ts = Date.now();
-  const heroImg = document.getElementById('profile-img');
-  const aboutImg = document.getElementById('about-profile-img') || document.querySelector('.about-img');
-
-  // Segarkan URL default dengan cache-buster terlebih dahulu
-  if (heroImg && heroImg.src && heroImg.src.startsWith('http')) {
-    heroImg.src = `${heroImg.src.split('?')[0]}?t=${ts}`;
-  }
-  if (aboutImg && aboutImg.src && aboutImg.src.startsWith('http')) {
-    aboutImg.src = `${aboutImg.src.split('?')[0]}?t=${ts}`;
-  }
-
-  if (!supabaseClient) return;
-
-  try {
-    const { data, error } = await supabaseClient
-      .from('profile_settings')
-      .select('hero_image_url, about_image_url, image_url, updated_at')
-      .order('id', { ascending: false })
-      .limit(1);
-
-    if (!error && data && data.length > 0) {
-      const row = data[0];
-      const heroUrl = row.hero_image_url || row.image_url;
-      const aboutUrl = row.about_image_url || row.image_url || row.hero_image_url;
-      const version = row.updated_at ? new Date(row.updated_at).getTime() : Date.now();
-      if (heroUrl || aboutUrl) {
-        applyProfileUrls(heroUrl, aboutUrl, version);
-      }
-    }
-  } catch (err) { }
-}
-
-function setupProfileRealtime() {
-  if (!supabaseClient) return;
-  try {
-    supabaseClient
-      .channel('profile-settings-sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profile_settings' }, (payload) => {
-        if (payload.new) {
-          const row = payload.new;
-          const heroUrl = row.hero_image_url || row.image_url;
-          const aboutUrl = row.about_image_url || row.image_url || row.hero_image_url;
-          applyProfileUrls(heroUrl, aboutUrl, Date.now());
-        }
-      })
-      .subscribe();
-  } catch (err) { }
-}
-
-// ============================================================
-// DATA PROYEK DENGAN METODE STAR (Problem - Solution - Impact)
-// ============================================================
-const MAX_PROJECT_IMAGES = 3;
-const PROJECT_IMAGES_BUCKET = 'project-images';
-function buildProjectImages(folder, options = {}) {
-  const base = `${SUPABASE_URL}/storage/v1/object/public/${PROJECT_IMAGES_BUCKET}/projects/${folder}/`;
-  const ext = options.ext || 'png';
-  const teamExt = options.teamExt || (folder === 'karaoke-poprock' ? 'jpg' : ext);
-  if (options.teamOnly) {
-    return [
-      {
-        src: base + `tim.${teamExt}`,
-        caption: options.caption || 'Dokumentasi tim pengerjaan proyek',
-        team: true
-      }
-    ];
-  }
-  if (options.noTeam) {
-    return [
-      { src: base + `1.${ext}`, caption: options.caption1 || 'Tampilan utama proyek' },
-      { src: base + `2.${ext}`, caption: options.caption2 || 'Fitur & antarmuka proyek' },
-    ];
-  }
-  return [
-    { src: base + `1.${ext}`, caption: options.caption1 || 'Tampilan utama proyek' },
-    { src: base + `2.${ext}`, caption: options.caption2 || 'Fitur & antarmuka proyek' },
-    { src: base + `tim.${teamExt}`, caption: options.captionTeam || 'Dokumentasi tim pengerjaan proyek', team: true },
-  ];
-}
-
-const fallbackProjects = [
+/* ---------- Data cadangan (dipakai bila Supabase kosong / offline) ---------- */
+const PROJECT_FALLBACK = [
   {
-    title: 'Chatbot Adenomyosis dan Endometriosis - BRIN',
-    images: buildProjectImages('chatbot-brin'),
+    match: 'chatbot',
+    title: 'Chatbot Adenomyosis dan Endometriosis — BRIN',
+    role: 'Full-stack Developer, UI/UX Designer & System Analyst',
+    org: 'Mitra: Badan Riset dan Inovasi Nasional (BRIN)',
+    period: 'Juni 2026 — Sekarang',
+    badge: 'MOBILE & AI',
     category: 'mobile',
-    icon: 'fa-robot',
-    gradient: 'linear-gradient(135deg,#047857,#10b981)',
-    tags: ['React Native', 'JavaScript', 'Python', 'Django', 'Supabase', 'Qdrant', 'Figma'],
-    description: 'Aplikasi chatbot untuk konsultasi dan edukasi seputar penyakit kewanitaan (adenomyosis dan endometriosis) yang dikembangkan bersama Badan Riset dan Inovasi Nasional (BRIN). Dibangun menggunakan Python dan JavaScript dengan alur percakapan dan materi edukasi terstruktur agar mudah dipahami pengguna.',
-    challenge: 'Kebutuhan media edukasi dan konsultasi medis kewanitaan yang sensitif, terpercaya, dan memerlukan akurasi informasi ilmiah berbasis data rujukan.',
-    solution: 'Membangun antarmuka mobile responsif dengan React Native serta mengintegrasikan Qdrant Vector DB & Supabase untuk pencarian semantik cerdas dengan backend Python Django.',
-    impact: 'Menyajikan alur konsultasi interaktif yang edukatif, aman, ramah pengguna, dan saat ini dalam tahap persiapan deployment uji coba BRIN.',
+    winBrand: 'BRIN AI MOBILE',
+    summary: 'Aplikasi chatbot mobile untuk konsultasi dan edukasi seputar penyakit kewanitaan (adenomyosis & endometriosis) bersama Badan Riset dan Inovasi Nasional (BRIN), dilengkapi pencarian semantik berbasis basis data vektor.',
+    description: 'Aplikasi chatbot mobile yang memanfaatkan kecerdasan buatan (AI) dan basis data vektor untuk layanan konsultasi serta edukasi kesehatan kewanitaan seputar penyakit adenomyosis dan endometriosis bersama Badan Riset dan Inovasi Nasional (BRIN), lengkap dengan pencarian semantik materi medis, antarmuka responsif rasio 9:16, dan perancangan alur pengguna melalui Figma.',
+    challenge: 'Kebutuhan media edukasi medis kewanitaan yang sensitif, terpercaya, dan memerlukan akurasi informasi ilmiah berbasis rujukan riset.',
+    solution: 'Antarmuka mobile React Native yang dipadukan dengan Qdrant Vector DB & Supabase di atas backend Python Django.',
+    impact: 'Menyajikan alur konsultasi interaktif yang edukatif, aman, ramah pengguna, dan siap menuju tahap deployment uji coba BRIN.',
+    tags: ['React Native', 'Python', 'Django', 'Qdrant Vector DB', 'Supabase', 'Figma', 'VSCode'],
     features: [
-      'Project Member | Front-End Developer & System Analyst (Juni 2026 - Sekarang)',
-      'Integrasi Basis Data Vektor Qdrant & Supabase untuk pencarian materi cerdas',
-      'Pengembangan antarmuka mobile responsif menggunakan React Native',
-      'Penyusunan materi edukasi seputar penyakit adenomyosis dan endometriosis',
-      'Backend layanan pemrosesan konsultasi berbasis Python & Django',
-      'Prototype dan alur user experience dirancang melalui Figma',
-      'Tahap finalisasi dan persiapan deployment'
+      'Integrasi Basis Data Vektor Qdrant & Supabase untuk pencarian materi medis secara semantik dan akurat.',
+      'Pengembangan antarmuka aplikasi mobile responsif (rasio 9:16) menggunakan React Native.',
+      'Penyusunan materi edukasi ilmiah seputar penyakit adenomyosis dan endometriosis bersama peneliti BRIN.',
+      'Perancangan prototype interaktif dan alur pengalaman pengguna (UI/UX) melalui Figma.'
     ],
-    github: '#',
-    live: '#',
-    figma: '#',
-    is_featured: true,
+    images: [
+      projImg('chatbot-brin', '1.png', 'Antarmuka Konsultasi Chatbot'),
+      projImg('chatbot-brin', '2.png', 'Edukasi & Rujukan Medis'),
+      projImg('chatbot-brin', 'tim.png', 'Dokumentasi Foto Tim Proyek Chatbot BRIN', true)
+    ]
   },
   {
-    title: 'Migrasi Sistem Informasi Akademik Berbasis Web - Politeknik Astra',
-    images: buildProjectImages('migrasi-sia'),
+    match: 'migrasi',
+    title: 'Migrasi Sistem Informasi Akademik Berbasis Web — Politeknik Astra',
+    role: 'Full-Stack Developer',
+    org: 'Politeknik Astra',
+    period: 'September 2025 — Mei 2026',
+    badge: 'WEB ENTERPRISE',
     category: 'web',
-    icon: 'fa-graduation-cap',
-    gradient: 'linear-gradient(135deg,#0f172a,#2563eb)',
-    tags: ['Next.js', 'ASP.NET 8.0', 'JavaScript', 'C#', 'SQL Server', 'GitLab', 'Figma'],
-    description: 'Melakukan migrasi dan mengembangkan ulang website Sistem Informasi Akademik (SIA) versi legacy menjadi arsitektur modern menggunakan Next.js dan framework backend ASP.NET 8.0, mencakup pembaruan dan perbaikan struktur kode serta database.',
-    challenge: 'Website SIA versi lama memiliki performa lambat, struktur kode monolitik yang sulit di-maintain, dan antarmuka usang bagi civitas akademika.',
-    solution: 'Migrasi total frontend ke Next.js dengan SSR dan arsitektur backend performa tinggi ASP.NET 8.0 (C#) serta restrukturisasi relasi basis data SQL Server.',
-    impact: 'Pemuatan halaman akademik menjadi jauh lebih responsif.',
+    winBrand: 'SIA POLITEKNIK ASTRA',
+    summary: 'Migrasi dan pengembangan ulang website Sistem Informasi Akademik (SIA) versi legacy menjadi arsitektur modern menggunakan Next.js dan backend ASP.NET 8.0 (C#) serta optimasi database SQL Server.',
+    description: 'Website Sistem Informasi Akademik (SIA) hasil migrasi dan pengembangan ulang dari sistem legacy menuju arsitektur web modern menggunakan Next.js dan backend ASP.NET 8.0 (C#), lengkap dengan pembaruan struktur relasi database SQL Server, kolaborasi repositori GitLab, serta redesain antarmuka akademik melalui Figma.',
+    challenge: 'Website SIA versi lama memiliki performa lambat, struktur kode monolitik, dan antarmuka yang perlu dimodernisasi.',
+    solution: 'Migrasi penuh frontend ke Next.js (SSR) dan arsitektur backend ASP.NET 8.0 disertai restrukturisasi relasi SQL Server.',
+    impact: 'Pemuatan halaman akademik menjadi jauh lebih responsif dan mudah dipelihara oleh tim pengembang.',
+    tags: ['Next.js', 'ASP.NET 8.0', 'C#', 'JavaScript', 'SQL Server', 'GitLab', 'Figma'],
     features: [
-      'Project Member | Full-stack Developer (September 2025 - Mei 2026)',
-      'Migrasi frontend SIA dari teknologi lama ke framework modern Next.js',
-      'Pembangunan web service performa tinggi dengan ASP.NET 8.0 dan C#',
-      'Pembaruan struktur database dan optimasi relasi data di SQL Server',
-      'Redesain tampilan antarmuka akademik yang user-friendly via Figma'
+      'Migrasi penuh frontend SIA dari teknologi legacy menuju arsitektur modern berbasis Next.js.',
+      'Pembangunan web service backend berkinerja tinggi menggunakan ASP.NET 8.0 dan bahasa C#.',
+      'Restrukturisasi skema database dan optimasi query relasional pada Microsoft SQL Server.',
+      'Redesain pengalaman pengguna (UI/UX) modul akademik melalui Figma serta version control GitLab.'
     ],
-    github: '#',
-    live: '#',
-    figma: '#',
-    is_featured: true,
+    images: [
+      projImg('migrasi-sia', '1.png', 'Halaman Utama Sistem Informasi Akademik'),
+      projImg('migrasi-sia', '2.png', 'Modul Akademik & Pengelolaan Data'),
+      projImg('migrasi-sia', 'tim.png', 'Dokumentasi Foto Tim Proyek Migrasi SIA', true)
+    ]
   },
   {
-    title: 'Booking Motor - Politeknik Astra',
-    images: buildProjectImages('booking-motor', { teamOnly: true }),
-    is_confidential: true,
-    confidential_note: 'Tampilan antarmuka sistem dan struktur kode dilindungi kerahasiaan kredensial perusahaan (PT Astra Honda Motor). Oleh karena itu, dokumentasi visual yang ditampilkan khusus foto tim pengembang.',
+    match: 'booking motor',
+    title: 'Booking Motor — Proyek Migrasi AHM',
+    role: 'Back-End & Front-End Developer',
+    org: 'Proyek Migrasi PT Astra Honda Motor (AHM)',
+    period: 'Juli 2026 — Agustus 2026',
+    badge: 'WEB & BACKEND API',
     category: 'web',
-    icon: 'fa-motorcycle',
-    gradient: 'linear-gradient(135deg,#b91c1c,#ef4444)',
-    tags: ['Java', 'Oracle SQL Developer', 'NetBeans', 'Postman', 'SonarQube'],
-    description: 'Mengembangkan fungsi sistem Booking motor untuk proyek migrasi PT Astra Honda Motor (AHM) dengan fokus pada backend, ketepatan transaksi database, dan kualitas kode.',
-    challenge: 'Migrasi data dan fungsionalitas booking sepeda motor yang memerlukan validasi transaksi data ketat.',
-    solution: 'Pengembangan RESTful API berbasis Java dengan pemodelan skema Oracle SQL Developer.',
-    impact: 'API pemesanan servis berhasil terintegrasi dengan standar kode bersih dan keamanan terverifikasi SonarQube.',
+    winBrand: 'AHM ENTERPRISE MIGRATION',
+    confidential: true,
+    summary: 'Mengembangkan fungsi sistem Booking Motor untuk proyek migrasi PT Astra Honda Motor (AHM) dengan fokus pada keandalan backend Java, ketepatan transaksi database Oracle SQL, dan kualitas kode SonarQube.',
+    description: 'Pengembangan fungsi sistem pemesanan dan transaksi Booking Motor dalam proyek migrasi enterprise PT Astra Honda Motor (AHM), mencakup pembangunan RESTful API berbasis Java, pemodelan skema serta validasi transaksi database di Oracle SQL Developer, pengujian otomatis via Postman, dan pemeriksaan standar kualitas kode menggunakan SonarQube.',
+    challenge: 'Migrasi data dan fungsionalitas booking sepeda motor yang memerlukan validasi transaksi ketat sesuai standar industri.',
+    solution: 'Pengembangan RESTful API berbasis Java dengan pemodelan skema Oracle SQL Developer & uji Postman.',
+    impact: 'API pemesanan berhasil terintegrasi dengan standar kode bersih dan keamanan terverifikasi SonarQube.',
+    tags: ['Java', 'Oracle SQL Developer', 'Postman', 'SonarQube', 'NetBeans'],
     features: [
-      'Project Member | Back-End Developer & Front-End Developer (Juli 2026 - Agustus 2026)',
-      'Pengembangan modul backend Booking motor untuk kebutuhan migrasi sistem AHM',
-      'Pengujian API endpoint dan validasi request otomatis dengan Postman',
-      'Pemeriksaan kualitas kode dan standar compliance menggunakan SonarQube'
+      'Pengembangan modul backend Booking Motor untuk kebutuhan migrasi sistem enterprise PT AHM.',
+      'Pemodelan query dan validasi transaksi database menggunakan Oracle SQL Developer.',
+      'Pengujian endpoint RESTful API dan skenario payload secara menyeluruh dengan Postman.',
+      'Audit kualitas, keamanan, dan standar kepatuhan kode menggunakan SonarQube (tampilan sistem dilindungi kredensial perusahaan).'
     ],
-    github: '#',
-    live: '#',
-    is_featured: false,
+    images: [
+      projImg('booking-motor', 'tim.png', 'Dokumentasi Tim Pengembang Proyek Booking Motor AHM', true)
+    ]
   },
   {
-    title: 'Manajemen Asset - Politeknik Astra',
-    images: buildProjectImages('manajemen-asset'),
+    match: 'manajemen asset',
+    title: 'Manajemen Asset — Politeknik Astra',
+    role: 'Full-Stack Developer, UI/UX Designer & System Analyst',
+    org: 'Politeknik Astra',
+    period: 'Oktober 2025 — Februari 2026',
+    badge: 'WEB APPLICATION',
     category: 'web',
-    icon: 'fa-boxes-stacked',
-    gradient: 'linear-gradient(135deg,#1e3a5f,#3b82f6)',
-    tags: ['PHP', 'MySQL', 'Figma', 'Draw.io'],
-    description: 'Membangun website sistem inventaris dan manajemen aset kampus menggunakan PHP dan database MySQL. Dilengkapi fitur maintenance berkala serta pelaporan barang yang ingin dimaintenance.',
-    challenge: 'Pendataan barang inventaris dan riwayat servis aset kampus yang sebelumnya dicatat secara manual dan rawan kehilangan data.',
-    solution: 'Membangun platform inventaris berbasis PHP & MySQL dengan modul pelaporan maintenance berkala, pelacakan status, dan visualisasi proses bisnis via Draw.io.',
-    impact: 'UPT Infromatika dapat memantau status fisik ribuan aset dan merespons pengajuan perbaikan barang secara cepat dan terdata.',
+    winBrand: 'ASSET MANAGEMENT SYSTEM',
+    summary: 'Membangun website sistem inventaris dan manajemen aset kampus menggunakan PHP dan database MySQL, dilengkapi fitur penjadwalan maintenance berkala serta pelaporan kerusakan barang.',
+    description: 'Website sistem inventaris dan manajemen aset fasilitas kampus menggunakan PHP dan database MySQL untuk memantau kondisi ribuan barang secara berkala, lengkap dengan modul penjadwalan pemeliharaan (maintenance), pelaporan kerusakan barang, perancangan alur sistem di Draw.io, serta desain antarmuka melalui Figma.',
+    challenge: 'Pendataan barang inventaris dan riwayat servis aset kampus sebelumnya dicatat manual dan rawan selisih data.',
+    solution: 'Platform inventaris berbasis PHP & MySQL dengan modul pelaporan maintenance dan alur sistem Draw.io.',
+    impact: 'UPT Informatika dapat memantau status ribuan aset dan merespons pengajuan perbaikan dengan cepat.',
+    tags: ['PHP', 'MySQL', 'HTML', 'CSS', 'Figma', 'Draw.io'],
     features: [
-      'Project Member | Full-stack Developer, UI/UX Designer & System Analyst (Oktober 2025 - Februari 2026)',
-      'Fitur pencatatan dan monitoring status inventaris barang secara berkala',
-      'Modul pelaporan barang rusak dan jadwal pemeliharaan (maintenance)',
-      'Perancangan alur proses bisnis dan diagram sistem menggunakan Draw.io',
-      'Desain mockup antarmuka pengguna interaktif menggunakan Figma'
+      'Pencatatan dan pemantauan status inventaris barang kampus secara terpusat dan berkala.',
+      'Modul penjadwalan pemeliharaan (maintenance) rutin serta pelaporan barang rusak secara real-time.',
+      'Perancangan diagram alur proses bisnis menggunakan Draw.io serta prototipe UI/UX di Figma.'
     ],
-    github: '#',
-    live: '#',
-    figma: '#',
-    is_featured: false,
+    images: [
+      projImg('manajemen-asset', '1.png', 'Dashboard Inventaris & Manajemen Aset'),
+      projImg('manajemen-asset', '2.png', 'Modul Pelaporan & Jadwal Maintenance'),
+      projImg('manajemen-asset', 'tim.png', 'Dokumentasi Foto Tim Proyek Manajemen Asset', true)
+    ]
   },
   {
-    title: 'Aplikasi Dekstop Karaoke Poprock - Politeknik Astra',
-    images: buildProjectImages('karaoke-poprock', { teamExt: 'jpg' }),
+    match: 'karaoke',
+    title: 'Aplikasi Desktop Karaoke Poprock — Politeknik Astra',
+    role: 'Full-Stack Developer, UI/UX Designer & System Analyst',
+    org: 'Politeknik Astra',
+    period: 'Mei 2025 — Juli 2026',
+    badge: 'DESKTOP POS & OPS',
     category: 'desktop',
-    icon: 'fa-microphone-lines',
-    gradient: 'linear-gradient(135deg,#6d28d9,#8b5cf6)',
-    tags: ['Java', 'JavaFX', 'C#', 'SQL Server'],
-    description: 'Membangun dua aplikasi desktop pengelolaan karaoke menggunakan Java dan C# yang terintegrasi dengan SQL Server. Aplikasi mencakup modul manajemen operasional (paket, staf, ruangan, jam, dan menu) serta modul transaksi kasir.',
-    challenge: 'Kebutuhan integrasi dua aplikasi berbeda (JavaFX dan C#) agar dapat sinkron secara real-time ke satu basis data tanpa konflik transaksi kasir.',
-    solution: 'Perancangan arsitektur database terpusat di SQL Server dengan isolasi transaksi ACID untuk reservasi jam ruangan, pesanan menu, dan kasir POS.',
-    impact: 'Operasional karaoke berjalan teratur, waktu tunggu reservasi terpangkas, dan laporan rekapitulasi omset otomatis tercatat.',
+    winBrand: 'POPROCK POS & OPS',
+    summary: 'Membangun dua aplikasi desktop pengelolaan karaoke menggunakan Java (JavaFX) dan C# yang terintegrasi dengan satu basis data SQL Server, mencakup modul operasional ruangan/staf dan modul transaksi kasir.',
+    description: 'Sistem pengelolaan operasional tempat hiburan karaoke berbasis dua aplikasi desktop terintegrasi yang dibangun menggunakan Java (JavaFX) dan C# di atas satu database SQL Server terpusat, mencakup modul manajemen staf, ketersediaan dan reservasi jam ruangan, pemesanan menu makanan/minuman, hingga transaksi kasir (POS).',
+    challenge: 'Sinkronisasi real-time dua aplikasi berbeda (JavaFX & C#) ke satu database tanpa konflik transaksi kasir.',
+    solution: 'Arsitektur database terpusat di SQL Server untuk reservasi jam ruangan, pesanan menu, dan kasir POS.',
+    impact: 'Operasional karaoke berjalan teratur dan laporan rekapitulasi omset tercatat otomatis.',
+    tags: ['Java', 'JavaFX', 'C#', 'SQL Server', 'Figma'],
     features: [
-      'Project Member | Fullstack Developer, UI/UX Designer & System Analyst (Mei 2025 - Juli 2026)',
-      'Modul manajemen staf, jadwal ketersediaan ruangan karaoke, dan reservasi jam',
-      'Modul kasir dan transaksi penjualan ruangan, paket promo, dan menu makanan',
-      'Integrasi dua aplikasi berbeda (Java & C#) ke satu basis data SQL Server',
-      'Penyusunan laporan penjualan dan riwayat transaksi kasir'
+      'Modul manajemen staf, pemantauan ketersediaan ruangan karaoke, dan reservasi durasi sewa.',
+      'Modul kasir (Point of Sale) untuk transaksi sewa ruangan, paket promo, serta pesanan makanan dan minuman.',
+      'Integrasi sinkron dua aplikasi desktop berbeda (JavaFX & C#) ke dalam satu basis data SQL Server.'
     ],
-    github: '#',
-    live: '#',
-    is_featured: false,
+    images: [
+      projImg('karaoke-poprock', '1.png', 'Modul Operasional & Reservasi Ruangan'),
+      projImg('karaoke-poprock', '2.png', 'Modul Transaksi Kasir (POS)'),
+      projImg('karaoke-poprock', 'tim.jpg', 'Dokumentasi Foto Tim Proyek Karaoke Poprock', true)
+    ]
   },
   {
-    title: 'Aplikasi Dekstop Booking Hotel - Politeknik Astra',
-    images: buildProjectImages('booking-hotel', { noTeam: true }),
+    match: 'booking hotel',
+    title: 'Aplikasi Desktop Booking Hotel — Politeknik Astra',
+    role: 'Full-Stack Developer & System Analyst',
+    org: 'Politeknik Astra',
+    period: 'Desember 2024 — Februari 2025',
+    badge: 'NATIVE C SYSTEM',
     category: 'desktop',
-    icon: 'fa-hotel',
-    gradient: 'linear-gradient(135deg,#0369a1,#0ea5e9)',
-    tags: ['C', 'Draw.io', 'Data Structures'],
-    description: 'Membangun Aplikasi Booking Hotel berbasis bahasa C yang meliputi fungsi manajemen data kamar, customer, paket member, karyawan, jenis kamar, dan tipe pembayaran serta transaksi booking kamar, pendaftaran member, dan pembayaran denda.',
-    challenge: 'Mengelola manajemen kamar, pendaftaran member, dan perhitungan denda menginap menggunakan bahasa tingkat menengah C tanpa bantuan database engine.',
-    solution: 'Implementasi struktur data dinamis (struct, linked list, file handling) yang efisien, dilengkapi pemodelan alur kerja sistem via Draw.io.',
-    impact: 'Program berjalan sangat ringan, waktu pemrosesan transaksi secepat kilat, dan penggunaan memori RAM sangat optimal.',
+    winBrand: 'HOTEL BOOKING C SYSTEM',
+    summary: 'Membangun aplikasi Booking Hotel berbasis bahasa C yang mengelola kamar, customer, paket member, karyawan, transaksi booking kamar, hingga perhitungan denda keterlambatan.',
+    description: 'Aplikasi desktop manajemen perhotelan berbasis bahasa pemrograman C yang dirancang dengan struktur data efisien untuk mengelola ketersediaan kamar, registrasi pelanggan, paket member, data staf, transaksi pemesanan kamar, hingga perhitungan otomatis diskon member dan denda keterlambatan.',
+    challenge: 'Mengelola manajemen kamar, member, dan denda menginap menggunakan bahasa C tanpa database engine eksternal.',
+    solution: 'Implementasi struktur data dinamis (struct & file handling) disertai pemodelan alur kerja via Draw.io.',
+    impact: 'Program berjalan sangat ringan, waktu pemrosesan transaksi cepat, dan penggunaan RAM sangat optimal.',
+    tags: ['Bahasa C', 'Data Structures', 'Draw.io'],
     features: [
-      'Project Member | Fullstack Developer, UI/UX Designer & System Analyst (Desember 2024 - Februari 2025)',
-      'Struktur data efisien untuk manajemen kamar, customer, paket member, dan staf',
-      'Sistem transaksi pemesanan kamar dan perhitungan biaya sewa',
-      'Modul pendaftaran keanggotaan (member) dan kalkulasi denda keterlambatan',
-      'Dokumentasi alur sistem data flow terstruktur menggunakan Draw.io'
+      'Implementasi struktur data dinamis (struct & file handling) untuk manajemen kamar, pelanggan, member, dan staf.',
+      'Kalkulasi transaksi menginap otomatis mencakup potongan diskon member dan denda keterlambatan check-out.',
+      'Pemodelan alur kerja sistem secara terstruktur menggunakan Draw.io.'
     ],
-    github: '#',
-    live: '#',
-    is_featured: false,
-  },
-];
-
-let currentProjects = [...fallbackProjects];
-let activeCategoryFilter = 'all';
-let currentSearchQuery = '';
-
-// ============================================================
-// DATA SERTIFIKASI & PELATIHAN INTERAKTIF
-// ============================================================
-const CERTIFICATES_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public/${PROJECT_IMAGES_BUCKET}/certificates/`;
-
-const certificationsData = [
-  {
-    title: 'Artificial Intelligence',
-    slug: 'artificial-intelligence',
-    pdfUrl: `${CERTIFICATES_BASE_URL}artificial-intelligence.pdf`,
-    year: '2026',
-    date: '16 Oktober 2026',
-    issuer: 'Lembaga Kursus Bisa AI Academy',
-    category: 'Kecerdasan Buatan & Machine Learning',
-    description: 'Pemahaman konsep dasar Artificial Intelligence (AI) dan Machine Learning: pemrosesan data, pengenalan pola, otomasi cerdas, algoritma pembelajaran mesin, serta penerapan kecerdasan buatan untuk pemecahan masalah.',
-    credentialId: '2026/506/69181',
-    icon: 'fa-solid fa-brain'
-  },
-  {
-    title: 'Basic Figma: Pembuatan UI Aplikasi Mobile',
-    slug: 'basic-figma',
-    pdfUrl: `${CERTIFICATES_BASE_URL}basic-figma.pdf`,
-    year: '2026',
-    issuer: 'Lembaga Kursus Bisa AI Academy',
-    category: 'UI/UX Design, Auto-Layout & Interactive Prototyping',
-    description: 'Pelatihan intensif perancangan antarmuka pengguna mobile menggunakan Figma: auto-layout, interactive components, wireframing, color palette & typography hierarchy, design system, dan prototipe animasi micro-interaction.',
-    credentialId: '2026/537/69181',
-    icon: 'fa-brands fa-figma'
-  },
-  {
-    title: 'Dasar - Dasar Node JS',
-    slug: 'dasar-nodejs',
-    pdfUrl: `${CERTIFICATES_BASE_URL}dasar-nodejs.pdf`,
-    year: '2026',
-    date: '17 Oktober 2026',
-    issuer: 'Lembaga Kursus Bisa AI Academy',
-    category: 'Backend & JavaScript Runtime Environment',
-    level: 'Pemula',
-    progress: 'Selesai (Kelas Gratis)',
-    description: 'Pemahaman mendalam mengenai arsitektur event-driven dan asynchronous I/O pada Node.js, Express.js middleware, modular architecture, manajemen dependency NPM, serta pembuatan RESTful API terstruktur.',
-    credentialId: '2026/412/69181',
-    icon: 'fa-brands fa-node-js'
-  },
-  {
-    title: 'Basic Excel',
-    slug: 'basic-excel',
-    pdfUrl: `${CERTIFICATES_BASE_URL}basic-excel.pdf`,
-    year: '2026',
-    date: '17 Oktober 2026',
-    issuer: 'Lembaga Kursus Bisa AI Academy',
-    category: 'Pengolahan & Analisis Data',
-    level: 'Pemula',
-    progress: 'Selesai (Pelatihan Asinkronus)',
-    description: 'Penguasaan formula dan fungsi esensial Microsoft Excel, manipulasi tabel data, conditional formatting, fungsi statistik dasar (SUM, AVERAGE, COUNT, IF), data cleaning, serta penyusunan lembar kerja analisis kuantitatif.',
-    credentialId: '2026/294/69181',
-    icon: 'fa-solid fa-file-excel'
-  },
-  {
-    title: 'MikroTik Certified Network Associate (MTCNA)',
-    slug: 'mtcna-mikrotik',
-    pdfUrl: `${CERTIFICATES_BASE_URL}mtcna-mikrotik.pdf`,
-    year: '2026',
-    date: '31 Januari 2026',
-    issuer: 'Mikrotikls SIA (Riga, Latvia)',
-    verifyUrl: 'https://mikrotik.com/certificates',
-    category: 'Jaringan Komputer, Routing, NAT & Firewall',
-    description: 'Sertifikasi keahlian internasional resmi dari Mikrotikls SIA (Riga, Latvia). Memvalidasi kompetensi dalam administrasi RouterOS MikroTik: konfigurasi routing dinamis/statis, DHCP server/client, firewall filter rules, NAT, queue bandwidth management, bridge, dan maintenance jaringan.',
-    credentialId: '2601NA2655',
-    icon: 'fa-solid fa-network-wired'
-  },
-  {
-    title: 'Dasar - Dasar Python',
-    slug: 'dasar-python',
-    pdfUrl: `${CERTIFICATES_BASE_URL}dasar-python.pdf`,
-    year: '2026',
-    date: '05 Agustus 2026',
-    issuer: 'Lembaga Kursus Bisa AI Academy',
-    category: 'Algoritma & Pemrograman Python',
-    level: 'Pemula',
-    progress: 'Selesai (Pelatihan Asinkronus)',
-    description: 'Fondasi pemrograman Python oleh Bisa AI Academy: sintaksis dasar, tipe data, variabel, kontrol alur (if-else), perulangan (for, while), fungsi kustom, manipulasi string, struktur data list & dictionary, serta logika algoritma.',
-    credentialId: '2026/249/69181',
-    icon: 'fa-brands fa-python'
-  },
-  {
-    title: 'Python Fundamental',
-    slug: 'python-fundamental',
-    pdfUrl: `${CERTIFICATES_BASE_URL}python-fundamental.pdf`,
-    year: '2025',
-    date: '04 Agustus 2025',
-    issuer: 'Aguna Course (Ahmad Rosid Komarudin - CEO)',
-    verifyUrl: 'https://agunacourse.com/cek-sertifikat',
-    category: 'Pemrograman Python & Logika Algoritma Dasar',
-    description: 'Kursus pemantapan fondasi bahasa pemrograman Python oleh Aguna Course: pengenalan sintaksis, variabel, kontrol percabangan, loop iteration, fungsi modular, dan pemecahan masalah algoritma dasar.',
-    credentialId: 'AC-315-33886729-97',
-    icon: 'fa-brands fa-python'
-  },
-  {
-    title: 'Linux Fundamental',
-    slug: 'linux-fundamental',
-    pdfUrl: `${CERTIFICATES_BASE_URL}linux-fundamental.pdf`,
-    year: '2025',
-    date: '04 Agustus 2025',
-    issuer: 'Aguna Course (Ahmad Rosid Komarudin - CEO)',
-    verifyUrl: 'https://agunacourse.com/cek-sertifikat',
-    category: 'Sistem Operasi Linux, Terminal CLI & Server Administration',
-    description: 'Kursus fondasi sistem operasi Linux oleh Aguna Course: navigasi direktori CLI (Command Line Interface), manajemen file dan hak akses (chmod, chown), pengelolaan proses latar belakang, manajemen pengguna dan grup, package management, serta dasar shell command.',
-    credentialId: 'AC-050-75298727-98',
-    icon: 'fa-brands fa-linux'
-  },
-  {
-    title: 'Virtual Machine Fundamental',
-    slug: 'virtual-machine',
-    pdfUrl: `${CERTIFICATES_BASE_URL}virtual-machine.pdf`,
-    year: '2025',
-    date: '05 Mei 2025',
-    issuer: 'Aguna Course (Ahmad Rosid Komarudin - CEO)',
-    verifyUrl: 'https://agunacourse.com/cek-sertifikat',
-    category: 'Sistem Operasi, Virtualisasi & Hypervisor',
-    description: 'Kursus fundamental perancangan dan manajemen mesin virtual (Virtual Machine) oleh Aguna Course: konsep arsitektur hypervisor Type-1 dan Type-2, alokasi resource hardware (CPU, RAM, virtual disk), konfigurasi adapter jaringan virtual (Bridged, NAT, Host-Only), serta isolasi sistem operasi.',
-    credentialId: 'AC-446-15449133-19',
-    icon: 'fa-solid fa-server'
-  },
-  {
-    title: 'Simulasi Jaringan dengan PNETLab',
-    slug: 'simulasi-jaringan-pnetlab',
-    pdfUrl: `${CERTIFICATES_BASE_URL}simulasi-jaringan-pnetlab.pdf`,
-    year: '2025',
-    date: '04 Agustus 2025',
-    issuer: 'Aguna Course (Ahmad Rosid Komarudin - CEO)',
-    verifyUrl: 'https://agunacourse.com/cek-sertifikat',
-    category: 'Simulasi Topologi Jaringan & Emulasi Router/Switch',
-    description: 'Kursus simulasi topologi jaringan komputer menggunakan platform PNETLab oleh Aguna Course: instalasi dan konfigurasi image router dan switch, perancangan arsitektur jaringan virtual, konfigurasi VLAN dan routing, serta analisis lalu lintas paket data.',
-    credentialId: 'AC-205-42646055-11',
-    icon: 'fa-solid fa-diagram-project'
+    noTeam: true,
+    images: [
+      projImg('booking-hotel', '1.png', 'Menu Utama & Manajemen Kamar Hotel'),
+      projImg('booking-hotel', '2.png', 'Transaksi Reservasi & Kalkulasi Member')
+    ]
   }
 ];
 
-// ============================================================
-// THEME SWITCHER (LIGHT & DARK MODE)
-// ============================================================
-const themeToggleBtn = document.getElementById('theme-toggle');
-const themeIcon = document.getElementById('theme-icon');
+let currentProjects = PROJECT_FALLBACK.map((p) => buildProjectModel({}, p));
+let activeProjCat = 'all';
+let projSearchQuery = '';
 
-function applyTheme(theme) {
-  if (theme === 'dark') {
-    document.body.classList.add('dark-theme');
-    if (themeIcon) {
-      themeIcon.classList.remove('fa-moon');
-      themeIcon.classList.add('fa-sun');
-    }
-  } else {
-    document.body.classList.remove('dark-theme');
-    if (themeIcon) {
-      themeIcon.classList.remove('fa-sun');
-      themeIcon.classList.add('fa-moon');
-    }
-  }
+/* ---------- Ikon & warna teknologi ---------- */
+const TECH_META = [
+  [/javafx/i, 'fa-solid fa-desktop', '#2563eb'],
+  [/javascript|^js$/i, 'fa-brands fa-js', '#eab308'],
+  [/java\b/i, 'fa-brands fa-java', '#ef4444'],
+  [/react/i, 'fa-brands fa-react', '#0ea5e9'],
+  [/next/i, 'fa-brands fa-react', '#2563eb'],
+  [/python/i, 'fa-brands fa-python', '#3b82f6'],
+  [/django/i, 'fa-solid fa-leaf', '#10b981'],
+  [/qdrant|vector/i, 'fa-solid fa-cubes', '#8b5cf6'],
+  [/supabase/i, 'fa-solid fa-bolt', '#10b981'],
+  [/figma/i, 'fa-brands fa-figma', '#f43f5e'],
+  [/vscode|visual studio/i, 'fa-solid fa-laptop-code', '#0284c7'],
+  [/asp|\.net/i, 'fa-solid fa-server', '#6366f1'],
+  [/^c#$|csharp/i, 'fa-solid fa-code', '#8b5cf6'],
+  [/oracle/i, 'fa-solid fa-database', '#dc2626'],
+  [/sql|postgres/i, 'fa-solid fa-database', '#0284c7'],
+  [/gitlab/i, 'fa-brands fa-gitlab', '#f97316'],
+  [/github/i, 'fa-brands fa-github', '#0f172a'],
+  [/git/i, 'fa-brands fa-git-alt', '#f97316'],
+  [/postman/i, 'fa-solid fa-paper-plane', '#f97316'],
+  [/sonar/i, 'fa-solid fa-shield-halved', '#0ea5e9'],
+  [/netbeans/i, 'fa-solid fa-cube', '#2563eb'],
+  [/php|laravel/i, 'fa-brands fa-php', '#6366f1'],
+  [/html/i, 'fa-brands fa-html5', '#f97316'],
+  [/css/i, 'fa-brands fa-css3-alt', '#2563eb'],
+  [/draw/i, 'fa-solid fa-diagram-project', '#f59e0b'],
+  [/data struct/i, 'fa-solid fa-sitemap', '#0ea5e9'],
+  [/^c$|bahasa c/i, 'fa-solid fa-terminal', '#2563eb']
+];
+
+function techMeta(name) {
+  const hit = TECH_META.find((row) => row[0].test(String(name).trim()));
+  return hit ? { icon: hit[1], color: hit[2] } : { icon: 'fa-solid fa-code', color: '#2563eb' };
 }
 
-try {
-  const savedTheme = localStorage.getItem('rasya-portfolio-theme');
-  if (savedTheme) applyTheme(savedTheme);
-} catch (e) { }
-
-if (themeToggleBtn) {
-  themeToggleBtn.addEventListener('click', () => {
-    const isDark = document.body.classList.contains('dark-theme');
-    const nextTheme = isDark ? 'light' : 'dark';
-    applyTheme(nextTheme);
-    try { localStorage.setItem('rasya-portfolio-theme', nextTheme); } catch (e) { }
-    showToast(nextTheme === 'dark' ? 'Mode Gelap diaktifkan' : 'Mode Terang diaktifkan');
-  });
+/* ---------- Normalisasi & penggabungan data Supabase + cadangan ---------- */
+function normalizeTags(raw) {
+  if (Array.isArray(raw)) return raw.map((t) => String(t).trim()).filter(Boolean);
+  if (typeof raw === 'string' && raw.trim()) return raw.split(',').map((t) => t.trim()).filter(Boolean);
+  return [];
 }
 
-// ============================================================
-// INTERACTIVE SPOTLIGHT & 3D TILT EFFECT
-// ============================================================
-function initInteractiveCards() {
-  document.querySelectorAll('.spotlight-card').forEach(card => {
-    card.addEventListener('mousemove', (e) => {
-      const rect = card.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      card.style.setProperty('--mouse-x', `${x}px`);
-      card.style.setProperty('--mouse-y', `${y}px`);
+function normalizeImages(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => (typeof item === 'string' ? { src: item } : item))
+    .filter((item) => item && typeof item.src === 'string' && item.src)
+    .map((item) => {
+      const src = item.src;
+      const isTeam = Boolean(item.team) || /\/(tim|team)\./i.test(src);
+      return { src, caption: item.caption || '', team: isTeam };
     });
+}
+
+function parseFeatureHeader(features) {
+  const list = Array.isArray(features) ? features.slice() : [];
+  let role = '';
+  let period = '';
+  if (list.length && /^project member\s*\|/i.test(list[0])) {
+    const m = list[0].match(/^project member\s*\|\s*(.+?)\s*\((.+)\)\s*$/i);
+    if (m) {
+      role = m[1];
+      period = m[2];
+    }
+    list.shift();
+  }
+  return { role, period, list };
+}
+
+function categoryBadge(cat) {
+  if (cat === 'mobile') return 'MOBILE & AI';
+  if (cat === 'desktop') return 'DESKTOP SYSTEM';
+  return 'WEB APPLICATION';
+}
+
+function buildProjectModel(remote, local) {
+  const r = remote || {};
+  const l = local || {};
+  const header = parseFeatureHeader(r.features);
+  const category = r.category || l.category || 'web';
+  const confidential = Boolean(l.confidential || r.is_confidential || /booking motor/i.test(r.title || l.title || ''));
+  const isHotel = Boolean(l.noTeam || /booking hotel/i.test(r.title || l.title || ''));
+
+  let images = normalizeImages(r.images);
+  const localImages = normalizeImages(l.images);
+  if (!images.length) images = localImages;
+  const localTeam = localImages.find((i) => i.team);
+
+  if (confidential) {
+    const team = images.find((i) => i.team) || localTeam;
+    images = team ? [team] : images;
+  } else if (isHotel) {
+    images = images.filter((i) => !i.team);
+  } else if (!images.some((i) => i.team) && localTeam) {
+    images = [...images, localTeam];
+  }
+
+  // maksimal 2 gambar program + 1 foto tim
+  const photos = images.filter((i) => !i.team).slice(0, 2);
+  const team = images.find((i) => i.team);
+  images = team ? [...photos, team] : photos;
+
+  const tags = normalizeTags(r.tags);
+  const features = header.list.length ? header.list : (l.features || []);
+
+  return {
+    title: r.title || l.title || 'Proyek',
+    role: header.role || l.role || 'Project Member',
+    org: l.org || 'Politeknik Astra',
+    period: header.period || l.period || '',
+    badge: l.badge || categoryBadge(category),
+    category,
+    winBrand: l.winBrand || (r.title || 'PROJECT PREVIEW').toUpperCase().slice(0, 28),
+    confidential,
+    summary: r.description || l.summary || l.description || '',
+    description: r.description || l.description || l.summary || '',
+    challenge: r.challenge || l.challenge || '',
+    solution: r.solution || l.solution || '',
+    impact: r.impact || l.impact || '',
+    tags: tags.length ? tags : (l.tags || []),
+    features,
+    images
+  };
+}
+
+function findLocalProject(remote, idx) {
+  const title = String(remote.title || '').toLowerCase();
+  const hit = PROJECT_FALLBACK.find((p) => title.includes(p.match));
+  if (hit) return hit;
+  return {};
+}
+
+/* ---------- Dokumentasi (maks. 2 program + 1 foto tim) ---------- */
+function buildProjectDocs(proj) {
+  const total = proj.images.length;
+  let programNo = 0;
+  return proj.images.map((img, i) => {
+    const mobile916 = proj.category === 'mobile' && !img.team;
+    if (!img.team) programNo += 1;
+    const labelBase = img.team ? 'Dokumentasi Foto Tim' : `Tampilan Program ${programNo}`;
+    return {
+      btnText: img.team
+        ? (proj.confidential ? 'Dokumentasi Foto Tim (Sistem Dilindungi Kredensial PT AHM)' : '3. Foto Tim')
+        : `${programNo}. Program ${programNo}`,
+      label: `${total > 1 ? `${i + 1}/${total} · ` : ''}${labelBase}${mobile916 ? ' ' : ''}`,
+      caption: img.caption || labelBase,
+      src: img.src,
+      mobile916,
+      team: img.team
+    };
+  });
+}
+
+function docIcon(doc) {
+  if (doc.mobile916) return 'fa-solid fa-mobile-screen-button';
+  if (doc.team) return 'fa-solid fa-users';
+  return 'fa-solid fa-desktop';
+}
+
+/* ---------- Render kartu proyek ---------- */
+function renderProjectCards(projects, instant) {
+  const list = document.querySelector('.projects-monograph-list');
+  if (!list) return;
+
+  list.innerHTML = projects.map((p, idx) => {
+    const docs = buildProjectDocs(p);
+    const first = docs[0] || { src: '', label: '', mobile916: false, team: false };
+    const revealCls = instant ? 'reveal-up is-visible' : 'reveal-up';
+    const serial = String(idx + 1).padStart(2, '0');
+    const tags = p.tags.slice(0, 7).map((t) => `<span class="stack-tag">${escHtml(t)}</span>`).join('');
+    const switcher = docs.map((d, i) => `
+      <button type="button" class="case-doc-btn ${i === 0 ? 'active' : ''}"
+        data-src="${escHtml(d.src)}" data-label="${escHtml(d.label)}" data-mobile="${d.mobile916}">
+        <i class="${docIcon(d)}"></i> ${escHtml(d.btnText)}
+      </button>`).join('');
+
+    const badgeOrRibbon = p.confidential
+      ? '<span class="confidential-ribbon"><i class="fa-solid fa-lock"></i> Dokumentasi Tim (Kredensial AHM)</span>'
+      : `<span class="case-doc-counter-badge"><i class="${docIcon(first)}"></i> ${escHtml(first.label)}</span>`;
+
+    const summary = p.summary.length > 260 ? `${p.summary.slice(0, 257)}...` : p.summary;
+
+    return `
+      <article class="project-case-item ${revealCls}" data-cat="${escHtml(p.category)}" data-project-idx="${idx}">
+        <div class="case-top-strip">
+          <div class="case-serial">
+            <span>PROYEK // ${serial}</span>
+            <span class="case-serial-badge">${escHtml(p.badge)}</span>
+            <span>${escHtml(p.org.toUpperCase())}</span>
+          </div>
+          <span>${escHtml(p.period.toUpperCase())}</span>
+        </div>
+
+        <div class="case-main-grid">
+          <div class="case-visual-col">
+            <div class="case-img-frame ${first.mobile916 ? 'is-mobile-916' : ''}">
+              ${badgeOrRibbon}
+              <div class="mobile-916-device">
+                <div class="mobile-916-notch"></div>
+                <img class="case-main-preview-img" src="${escHtml(first.src)}" alt="${escHtml(p.title)}" />
+              </div>
+            </div>
+            <div class="case-doc-switcher" aria-label="Pilih Dokumentasi Proyek">${switcher}</div>
+            <div class="case-tech-stack">${tags}</div>
+          </div>
+
+          <div class="case-content-col">
+            <div>
+              <div class="case-role-kicker">${escHtml(p.role)}</div>
+              <h3 class="case-title">${escHtml(p.title)}</h3>
+              <p class="case-summary">${escHtml(summary)}</p>
+            </div>
+            <div class="star-matrix">
+              <div class="star-cell"><span class="star-label">01 / Tantangan</span><p class="star-text">${escHtml(p.challenge)}</p></div>
+              <div class="star-cell"><span class="star-label">02 / Solusi</span><p class="star-text">${escHtml(p.solution)}</p></div>
+              <div class="star-cell"><span class="star-label">03 / Dampak</span><p class="star-text">${escHtml(p.impact)}</p></div>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="case-open-detail-bar" data-open-project="${idx}">
+          <span><i class="fa-solid fa-expand"></i> Rincian Fitur &amp; Halaman Detail Proyek Penuh</span>
+          <span>Klik untuk Buka Detail <i class="fa-solid fa-arrow-right"></i></span>
+        </button>
+      </article>`;
+  }).join('');
+
+  updateProjectCounts(projects);
+  applyProjectFilter();
+}
+
+function updateProjectCounts(projects) {
+  const pad = (n) => String(n).padStart(2, '0');
+  const count = (cat) => (cat === 'all' ? projects.length : projects.filter((p) => p.category === cat).length);
+  const labels = { all: 'Semua', web: 'Web App', mobile: 'Mobile & AI', desktop: 'Desktop System' };
+
+  document.querySelectorAll('.proj-filter-btn').forEach((btn) => {
+    const key = btn.dataset.filter || 'all';
+    if (labels[key]) btn.textContent = `${labels[key]} (${pad(count(key))})`;
   });
 
-  if (window.matchMedia('(pointer: fine)').matches) {
-    document.querySelectorAll('.tilt-card').forEach(card => {
-      card.addEventListener('mousemove', (e) => {
-        const rect = card.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
-        const rotateX = ((y - centerY) / centerY) * -4;
-        const rotateY = ((x - centerX) / centerX) * 4;
-        card.style.transform = `perspective(900px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
+  document.querySelectorAll('.ledger-val').forEach((cell) => {
+    const small = cell.querySelector('small');
+    const num = cell.querySelector('[data-counter]');
+    if (small && num && /proyek/i.test(small.textContent)) {
+      num.dataset.counter = String(projects.length);
+      num.textContent = pad(projects.length);
+    }
+  });
+}
+
+function applyProjectFilter() {
+  document.querySelectorAll('.project-case-item').forEach((item) => {
+    const cat = item.dataset.cat || '';
+    const text = item.textContent.toLowerCase();
+    const matchCat = activeProjCat === 'all' || cat === activeProjCat;
+    const matchSearch = !projSearchQuery || text.includes(projSearchQuery);
+    item.classList.toggle('is-hidden', !(matchCat && matchSearch));
+  });
+}
+
+/* ---------- Halaman detail proyek (penuh) ---------- */
+function setDetailActiveDoc(docs, docIdx) {
+  const doc = docs[docIdx];
+  if (!doc) return;
+  const frame = document.getElementById('fd-showcase-frame');
+  const img = document.getElementById('fd-preview-img');
+  const badge = document.getElementById('fd-counter-badge');
+  const switcher = document.getElementById('fd-doc-switcher');
+  const grid = document.getElementById('fd-gallery-grid');
+
+  if (img) {
+    img.dataset.extTried = '';
+    img.style.visibility = '';
+    img.src = doc.src;
+    img.alt = doc.caption;
+  }
+  if (frame) frame.classList.toggle('is-mobile-916', Boolean(doc.mobile916));
+  if (badge) badge.innerHTML = `<i class="${docIcon(doc)}"></i> ${escHtml(doc.label)}`;
+  if (switcher) switcher.querySelectorAll('.case-doc-btn').forEach((b, i) => b.classList.toggle('active', i === docIdx));
+  if (grid) grid.querySelectorAll('.drawer-doc-card').forEach((c, i) => c.classList.toggle('active', i === docIdx));
+}
+
+function openProjectDetailPage(idx) {
+  const proj = currentProjects[idx];
+  const page = document.getElementById('project-detail-page');
+  if (!proj || !page) return;
+
+  const docs = buildProjectDocs(proj);
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+
+  setText('fd-bc-current', proj.title);
+  setText('fd-period', proj.period);
+  setText('fd-role', `${proj.role} · ${proj.org}`);
+  setText('fd-title', proj.title);
+  setText('fd-desc', proj.description);
+
+  const brand = document.getElementById('fd-win-brand');
+  if (brand) brand.innerHTML = `<i class="fa-solid fa-bars"></i> ${escHtml(proj.winBrand)}`;
+
+  const techBox = document.getElementById('fd-tech-badges');
+  if (techBox) {
+    techBox.innerHTML = proj.tags.map((t) => {
+      const m = techMeta(t);
+      return `<span class="proj-tech-badge"><i class="${m.icon}" style="color: ${m.color};"></i> ${escHtml(t)}</span>`;
+    }).join('');
+  }
+
+  const featBox = document.getElementById('fd-features-list');
+  if (featBox) {
+    featBox.innerHTML = proj.features
+      .map((f) => `<li><i class="fa-solid fa-circle-check"></i> <span>${escHtml(f)}</span></li>`)
+      .join('');
+  }
+
+  const switcher = document.getElementById('fd-doc-switcher');
+  if (switcher) {
+    switcher.innerHTML = docs.map((d, i) => `
+      <button type="button" class="case-doc-btn ${i === 0 ? 'active' : ''}" data-doc-idx="${i}">
+        <i class="${docIcon(d)}"></i> ${escHtml(d.btnText)}
+      </button>`).join('');
+    switcher.querySelectorAll('.case-doc-btn').forEach((btn) => {
+      btn.addEventListener('click', () => setDetailActiveDoc(docs, parseInt(btn.dataset.docIdx, 10)));
+    });
+  }
+
+  const grid = document.getElementById('fd-gallery-grid');
+  if (grid) {
+    grid.classList.remove('is-two-docs', 'is-single-doc');
+    if (docs.length === 2) grid.classList.add('is-two-docs');
+    if (docs.length === 1) grid.classList.add('is-single-doc');
+    grid.innerHTML = docs.map((d, i) => `
+      <figure class="drawer-doc-card ${d.mobile916 ? 'is-916-card' : (d.team ? 'is-team-card' : '')} ${i === 0 ? 'active' : ''}" data-doc-idx="${i}">
+        <div class="drawer-doc-img-wrap"><img src="${escHtml(d.src)}" alt="${escHtml(d.caption)}" /></div>
+        <figcaption><i class="${docIcon(d)}"></i> ${escHtml(d.caption)}</figcaption>
+      </figure>`).join('');
+    grid.querySelectorAll('.drawer-doc-card').forEach((card) => {
+      card.addEventListener('click', () => {
+        setDetailActiveDoc(docs, parseInt(card.dataset.docIdx, 10));
+        const frame = document.getElementById('fd-showcase-frame');
+        if (frame) frame.scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
-      card.addEventListener('mouseleave', () => {
-        card.style.transform = '';
-      });
     });
   }
+
+  setDetailActiveDoc(docs, 0);
+  page.classList.add('is-open');
+  page.setAttribute('aria-hidden', 'false');
+  page.scrollTop = 0;
+  document.body.style.overflow = 'hidden';
 }
 
-// ============================================================
-// 1-CLICK COPY TEXT & TOAST NOTIFICATION
-// ============================================================
-function copyText(text, label) {
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(() => {
-      showToast(`${label || 'Teks'} berhasil disalin ke clipboard! 📋`);
-    }).catch(() => {
-      showToast(`${label || 'Teks'}: ${text}`);
-    });
-  } else {
-    showToast(`${label || 'Teks'}: ${text}`);
-  }
+function closeProjectDetailPage() {
+  const page = document.getElementById('project-detail-page');
+  if (!page) return;
+  page.classList.remove('is-open');
+  page.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
 }
 
-function showToast(message) {
-  const toast = document.getElementById('toast-notification');
-  const toastMsg = document.getElementById('toast-message');
-  if (toast && toastMsg) {
-    toastMsg.textContent = message;
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 3200);
-  }
-}
+/* ---------- Fallback ekstensi gambar (png -> jpg -> jpeg -> webp) ---------- */
+function initImageExtensionFallback() {
+  const exts = ['png', 'jpg', 'jpeg', 'webp', 'PNG', 'JPG'];
+  document.addEventListener('error', (e) => {
+    const img = e.target;
+    if (!(img instanceof HTMLImageElement)) return;
+    if (!img.closest('.projects-monograph-list, #project-detail-page')) return;
 
-// ============================================================
-// GALERI GAMBAR PROYEK (maks. 3, 1 di antaranya foto tim)
-// ============================================================
-function getProjectImages(p) {
-  let list = [];
-  if (Array.isArray(p.images)) {
-    list = p.images;
-  } else if (typeof p.images === 'string' && p.images.trim()) {
-    list = p.images.split(',');
-  }
-  list = list
-    .map(i => (typeof i === 'string' ? { src: i.trim() } : { ...i }))
-    .filter(i => i && typeof i.src === 'string' && i.src.trim() !== '');
-
-  if (list.length === 0 && typeof p.image_url === 'string' && p.image_url.trim() !== '') {
-    list = [{ src: p.image_url.trim() }];
-  }
-
-  const isHotel = (p.title || '').toLowerCase().includes('booking hotel');
-  if (isHotel) {
-    // Proyek booking hotel TIDAK ada foto tim (permintaan user)
-    return list.filter(i => !i.team && !i.src.includes('tim.') && !i.src.includes('team.'));
-  }
-
-  // Tandai otomatis properti team: true jika berkas adalah tim/team
-  list.forEach(item => {
-    if (typeof item.src === 'string' && (item.src.includes('/tim.') || item.src.includes('/team.') || item.src.includes('tim.png') || item.src.includes('tim.jpg'))) {
-      item.team = true;
-      if (!item.caption) item.caption = 'Dokumentasi tim pengerjaan proyek';
-    }
-  });
-
-  const isConfidential = p.is_confidential || (p.title || '').toLowerCase().includes('booking motor');
-  if (isConfidential) {
-    const teamImg = list.find(i => i.team);
-    if (teamImg) {
-      return [{
-        ...teamImg,
-        team: true,
-        caption: teamImg.caption || 'Dokumentasi tim pengerjaan proyek'
-      }];
-    }
-    const base = `${SUPABASE_URL}/storage/v1/object/public/${PROJECT_IMAGES_BUCKET}/projects/booking-motor/`;
-    return [{
-      src: base + 'tim.png',
-      caption: 'Dokumentasi tim pengerjaan proyek',
-      team: true
-    }];
-  }
-
-  if (list.length > MAX_PROJECT_IMAGES) {
-    const team = list.find(i => i.team);
-    const others = list.filter(i => i !== team);
-    list = team
-      ? [...others.slice(0, MAX_PROJECT_IMAGES - 1), team]
-      : others.slice(0, MAX_PROJECT_IMAGES);
-  }
-  return list;
-}
-
-function projectPlaceholderHtml(p, cls) {
-  return `<div class="${cls}" style="background:${p.gradient || 'linear-gradient(135deg,#1e3a5f,#2563eb)'}">
-      <i class="fa-solid ${p.icon || 'fa-code'}"></i>
-    </div>`;
-}
-
-const SUPPORTED_IMG_EXTS = ['png', 'jpg', 'jpeg', 'webp', 'PNG', 'JPG'];
-
-function tryNextImageExtension(img, onCompleteFailure) {
-  if (!img) return;
-  const currentSrc = img.src || '';
-  const match = currentSrc.match(/\.(png|jpg|jpeg|webp|PNG|JPG)(\?.*)?$/i);
-  if (!match) {
-    if (typeof onCompleteFailure === 'function') onCompleteFailure();
-    return;
-  }
-  const currentExt = match[1];
-  let tried = (img.dataset.triedExts || currentExt).split(',').map(s => s.trim().toLowerCase());
-  if (!tried.includes(currentExt.toLowerCase())) {
-    tried.push(currentExt.toLowerCase());
-  }
-
-  const nextExt = SUPPORTED_IMG_EXTS.find(ext => !tried.includes(ext.toLowerCase()));
-  if (nextExt) {
-    tried.push(nextExt.toLowerCase());
-    img.dataset.triedExts = tried.join(',');
-    const newSrc = currentSrc.replace(/\.(png|jpg|jpeg|webp|PNG|JPG)(\?.*)?$/i, '.' + nextExt + (match[2] || ''));
-    img.src = newSrc;
-
-    const gallery = img.closest('.modal-gallery');
-    const idx = img.dataset.idx;
-    if (gallery && idx !== undefined) {
-      const counterpart = gallery.querySelector(`img[data-idx="${idx}"]:not([src="${newSrc}"])`);
-      if (counterpart) {
-        counterpart.dataset.triedExts = tried.join(',');
-        counterpart.src = newSrc;
-      }
-    }
-  } else {
-    if (typeof onCompleteFailure === 'function') onCompleteFailure();
-  }
-}
-
-window.projectCardImgFallback = function (img) {
-  tryNextImageExtension(img, () => {
-    img.onerror = null;
-    const wrap = img.closest('.project-img-wrap');
-    const holder = document.createElement('div');
-    holder.className = 'project-img-placeholder';
-    holder.style.background = img.dataset.gradient || 'linear-gradient(135deg,#1e3a5f,#2563eb)';
-    holder.innerHTML = `<i class="fa-solid ${img.dataset.icon || 'fa-code'}"></i>`;
-    img.replaceWith(holder);
-    const badge = wrap && wrap.querySelector('.project-photo-count');
-    if (badge) badge.remove();
-  });
-};
-
-window.modalGalleryImgFallback = function (img) {
-  tryNextImageExtension(img, () => {
-    img.onerror = null;
-    const gallery = img.closest('.modal-gallery');
-    const idx = img.dataset.idx;
-    if (!gallery) return;
-    gallery.querySelectorAll(`[data-idx="${idx}"]`).forEach(el => el.remove());
-    const remaining = gallery.querySelectorAll('.gallery-thumb');
-    if (remaining.length === 0) {
-      gallery.replaceWith(Object.assign(document.createElement('div'), {
-        className: 'modal-img-placeholder',
-        innerHTML: `<i class="fa-solid ${gallery.dataset.icon || 'fa-code'}"></i>`
-      }));
-      const ph = document.querySelector('#modal-content .modal-img-wrap > .modal-img-placeholder');
-      if (ph) ph.style.background = gallery.dataset.gradient || 'linear-gradient(135deg,#1e3a5f,#2563eb)';
+    const tried = (img.dataset.extTried || '').split(',').filter(Boolean);
+    const match = img.src.match(/\.(png|jpg|jpeg|webp)(\?.*)?$/i);
+    if (!match) {
+      img.style.visibility = 'hidden';
       return;
     }
-    const stage = gallery.querySelector('.gallery-main');
-    if (stage && !stage.querySelector('.gallery-slide.active')) {
-      selectGalleryImage(remaining[0]);
+    if (!tried.includes(match[1])) tried.push(match[1]);
+    const next = exts.find((x) => !tried.includes(x));
+    if (!next) {
+      img.style.visibility = 'hidden';
+      return;
     }
-    if (remaining.length === 1) {
-      const strip = gallery.querySelector('.gallery-thumbs');
-      if (strip) strip.style.display = 'none';
-    }
-  });
-};
-
-window.selectGalleryImage = function selectGalleryImage(thumb) {
-  const gallery = thumb.closest('.modal-gallery');
-  if (!gallery) return;
-  const idx = thumb.dataset.idx;
-  gallery.querySelectorAll('.gallery-slide').forEach(s => s.classList.toggle('active', s.dataset.idx === idx));
-  gallery.querySelectorAll('.gallery-thumb').forEach(t => t.classList.toggle('active', t === thumb));
-};
-
-window.navigateGallerySlide = function (btn, dir) {
-  const gallery = btn.closest('.modal-gallery');
-  if (!gallery) return;
-  const thumbs = Array.from(gallery.querySelectorAll('.gallery-thumb'));
-  if (thumbs.length <= 1) return;
-  const currentIdx = thumbs.findIndex(t => t.classList.contains('active'));
-  let nextIdx = (currentIdx + dir + thumbs.length) % thumbs.length;
-  selectGalleryImage(thumbs[nextIdx]);
-};
-
-window.switchToTeamSlide = function () {
-  const gallery = document.querySelector('.modal-gallery');
-  if (!gallery) return;
-  const teamThumb = gallery.querySelector('.gallery-thumb.thumb-is-team');
-  if (teamThumb) {
-    selectGalleryImage(teamThumb);
-    gallery.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-};
-
-function buildModalGallery(p) {
-  const imgs = getProjectImages(p);
-  if (imgs.length === 0) return projectPlaceholderHtml(p, 'modal-img-placeholder');
-
-  const isMobileProj = (p.category === 'mobile') || (p.title || '').toLowerCase().includes('chatbot');
-
-  const slides = imgs.map((img, i) => {
-    const isMobileSlide = isMobileProj && !img.team;
-    return `
-    <figure class="gallery-slide ${i === 0 ? 'active' : ''} ${isMobileSlide ? 'slide-mobile-screen' : ''} ${img.team ? 'slide-team' : ''}" data-idx="${i}">
-      ${isMobileSlide ? `
-        <div class="mobile-phone-frame">
-          <img src="${img.src}" alt="${(img.caption || p.title).replace(/"/g, '&quot;')}" data-idx="${i}" onerror="modalGalleryImgFallback(this)" />
-        </div>
-      ` : `
-        <img src="${img.src}" alt="${(img.caption || p.title).replace(/"/g, '&quot;')}" data-idx="${i}" onerror="modalGalleryImgFallback(this)" />
-      `}
-      <figcaption>
-        ${img.team ? '<span class="gallery-team-badge"><i class="fa-solid fa-people-group"></i> Foto Tim</span>' : (isMobileSlide ? '<span class="gallery-mobile-badge"><i class="fa-solid fa-mobile-screen-button"></i> Mobile</span>' : '')}
-        ${img.caption || ''}
-      </figcaption>
-    </figure>`;
-  }).join('');
-
-  const thumbs = imgs.map((img, i) => {
-    const isMobileThumb = isMobileProj && !img.team;
-    return `
-    <button type="button" class="gallery-thumb ${i === 0 ? 'active' : ''} ${img.team ? 'thumb-is-team' : ''} ${isMobileThumb ? 'thumb-is-mobile' : ''}" data-idx="${i}" onclick="selectGalleryImage(this)" aria-label="${img.team ? 'Foto tim' : 'Gambar ' + (i + 1)}">
-      <img src="${img.src}" alt="" data-idx="${i}" onerror="modalGalleryImgFallback(this)" />
-      ${img.team ? '<span class="thumb-team-icon"><i class="fa-solid fa-people-group"></i></span>' : ''}
-      <span class="thumb-label-text">${img.team ? 'Foto Tim' : (isMobileThumb ? `Layar ${i + 1}` : `Foto ${i + 1}`)}</span>
-    </button>`;
-  }).join('');
-
-  const navBtns = imgs.length > 1 ? `
-    <button type="button" class="gallery-nav-btn prev" onclick="navigateGallerySlide(this, -1)" aria-label="Gambar Sebelumnya"><i class="fa-solid fa-chevron-left"></i></button>
-    <button type="button" class="gallery-nav-btn next" onclick="navigateGallerySlide(this, 1)" aria-label="Gambar Berikutnya"><i class="fa-solid fa-chevron-right"></i></button>
-  ` : '';
-
-  return `
-    <div class="modal-gallery ${isMobileProj ? 'is-mobile-gallery' : ''}" data-icon="${p.icon || 'fa-code'}" data-gradient="${p.gradient || ''}">
-      <div class="gallery-main">
-        ${slides}
-        ${navBtns}
-      </div>
-      <div class="gallery-thumbs" ${imgs.length === 1 ? 'style="display:none"' : ''}>${thumbs}</div>
-    </div>`;
+    tried.push(next);
+    img.dataset.extTried = tried.join(',');
+    img.src = img.src.replace(/\.(png|jpg|jpeg|webp)(\?.*)?$/i, `.${next}$2`);
+  }, true);
 }
 
-// ============================================================
-// RENDER KARTU PROYEK SECARA DINAMIS
-// ============================================================
-function filterMatchesProject(p) {
-  const catMatch = activeCategoryFilter === 'all' || (p.category || 'web') === activeCategoryFilter;
-  if (!catMatch) return false;
-  if (!currentSearchQuery) return true;
-
-  const q = currentSearchQuery.toLowerCase();
-  const titleMatch = (p.title || '').toLowerCase().includes(q);
-  const descMatch = (p.description || p.desc || '').toLowerCase().includes(q);
-  const rawTags = Array.isArray(p.tags) ? p.tags.join(' ') : (p.tags || '');
-  const tagMatch = rawTags.toLowerCase().includes(q);
-  return titleMatch || descMatch || tagMatch;
-}
-
-function renderProjects(projects) {
-  const grid = document.getElementById('projects-grid');
-  if (!grid) return;
-
-  grid.innerHTML = projects.map((p, index) => {
-    const projectImgs = getProjectImages(p);
-    const cover = projectImgs.find(i => !i.team) || projectImgs[0];
-    const isConfidential = p.is_confidential || (p.title || '').toLowerCase().includes('booking motor');
-    const isMobile = (p.category === 'mobile') || (p.title || '').toLowerCase().includes('chatbot');
-    const hasTeamPhoto = projectImgs.some(i => i.team);
-
-    let imageHtml = '';
-    if (cover) {
-      if (isMobile) {
-        imageHtml = `
-          <div class="mobile-card-backdrop" style="background-image:url('${cover.src}')"></div>
-          <div class="mobile-phone-mock">
-            <img src="${cover.src}" alt="${p.title}" class="project-card-img mobile-screen-img" loading="lazy" data-icon="${p.icon || 'fa-code'}" data-gradient="${p.gradient || ''}" onerror="projectCardImgFallback(this)" />
-          </div>
-          <span class="project-mobile-badge"><i class="fa-solid fa-mobile-screen-button"></i> Mobile</span>
-          ${hasTeamPhoto ? `<span class="project-has-team-badge" title="Tersedia foto dokumentasi tim"><i class="fa-solid fa-people-group"></i> +Foto Tim</span>` : ''}
-          ${projectImgs.length > 1 ? `<span class="project-photo-count"><i class="fa-solid fa-images"></i> ${projectImgs.length}</span>` : ''}
-        `;
-      } else {
-        imageHtml = `
-          <img src="${cover.src}" alt="${p.title}" class="project-card-img" loading="lazy" data-icon="${p.icon || 'fa-code'}" data-gradient="${p.gradient || ''}" onerror="projectCardImgFallback(this)" />
-          ${isConfidential ? `<span class="project-confidential-badge" title="Tampilan sistem dilindungi kredensial rahasia internal"><i class="fa-solid fa-shield-halved"></i> Kredensial</span>` : ''}
-          ${hasTeamPhoto && !isConfidential ? `<span class="project-has-team-badge" title="Tersedia foto dokumentasi tim"><i class="fa-solid fa-people-group"></i> +Foto Tim</span>` : ''}
-          ${projectImgs.length > 1 ? `<span class="project-photo-count"><i class="fa-solid fa-images"></i> ${projectImgs.length}</span>` : ''}
-          ${(projectImgs.length === 1 && cover && cover.team) ? `<span class="project-photo-count team-only"><i class="fa-solid fa-people-group"></i> Foto Tim</span>` : ''}
-        `;
-      }
-    } else {
-      imageHtml = projectPlaceholderHtml(p, 'project-img-placeholder');
-    }
-
-    const rawTags = Array.isArray(p.tags)
-      ? p.tags
-      : (typeof p.tags === 'string' && p.tags.trim() ? p.tags.split(',') : []);
-
-    const tagsHtml = rawTags
-      .map(t => `<span class="project-tag">${t.trim()}</span>`)
-      .slice(0, 4)
-      .join('');
-
-    const githubLink = p.github_url || p.github;
-    const liveLink = p.live_url || p.live;
-    const figmaLink = p.figma_url || p.figma;
-
-    const linksHtml = [];
-    if (githubLink && githubLink !== '#') {
-      linksHtml.push(`<a href="${githubLink}" class="project-link" target="_blank" rel="noopener"><i class="fa-brands fa-github"></i> GitHub</a>`);
-    }
-    if (figmaLink && figmaLink !== '#') {
-      linksHtml.push(`<a href="${figmaLink}" class="project-link" target="_blank" rel="noopener"><i class="fa-brands fa-figma"></i> Figma</a>`);
-    }
-    if (liveLink && liveLink !== '#') {
-      linksHtml.push(`<a href="${liveLink}" class="project-link" target="_blank" rel="noopener"><i class="fa-solid fa-globe"></i> Live Demo</a>`);
-    }
-    if (linksHtml.length === 0) {
-      linksHtml.push(`<button class="project-link" style="background:none;border:none;cursor:pointer;padding:0;font-family:inherit;color:inherit;font-size:inherit;" onclick="openModal(${index})"><i class="fa-solid fa-circle-info"></i> Detail &amp; Dokumentasi</button>`);
-    }
-
-    const isHidden = !filterMatchesProject(p);
-
-    return `
-      <div class="project-card spotlight-card tilt-card ${p.is_featured ? 'featured' : ''} ${isHidden ? 'hidden' : ''} reveal visible" data-category="${p.category || 'web'}" data-index="${index}">
-        ${p.is_featured ? '<div class="featured-badge">Featured</div>' : ''}
-        <div class="project-img-wrap ${isMobile ? 'is-mobile-wrap' : ''}" onclick="openModal(${index})">
-          ${imageHtml}
-          <div class="project-overlay">
-            <button class="btn-detail" onclick="openModal(${index})" id="btn-detail-${index}">Lihat Detail <i class="fa-solid fa-arrow-up-right-from-square"></i></button>
-          </div>
-        </div>
-        <div class="project-info">
-          <div class="project-tags">
-            ${tagsHtml}
-          </div>
-          <h3 class="project-title">${p.title}</h3>
-          <p class="project-desc">${p.description || p.desc || ''}</p>
-          <div class="project-footer">
-            ${linksHtml.join('')}
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  initInteractiveCards();
-}
-
-// Mengambil data proyek dari Supabase
+/* ---------- Supabase: proyek, profil, CV (+ realtime) ---------- */
 async function loadProjectsFromSupabase() {
   if (!supabaseClient) return;
-
   try {
     const { data, error } = await supabaseClient
       .from('projects')
@@ -876,70 +1058,94 @@ async function loadProjectsFromSupabase() {
       .order('order_index', { ascending: true })
       .order('created_at', { ascending: false });
 
-    if (error) return;
+    if (error || !data || !data.length) return;
 
-    if (data && data.length > 0) {
-      currentProjects = data.map((remoteProj, idx) => {
-        const localMatch = fallbackProjects.find(
-          lp => (lp.title || '').toLowerCase().trim() === (remoteProj.title || '').toLowerCase().trim()
-        ) || fallbackProjects[idx] || {};
+    currentProjects = data.map((row, idx) => buildProjectModel(row, findLocalProject(row, idx)));
+    renderProjectCards(currentProjects, true);
+  } catch (err) { /* tetap memakai data cadangan */ }
+}
 
-        const isConfidential = localMatch.is_confidential || remoteProj.is_confidential || (remoteProj.title || '').toLowerCase().includes('booking motor');
-        const isHotel = (remoteProj.title || localMatch.title || '').toLowerCase().includes('booking hotel');
+const PROFILE_CANDIDATES = [
+  `${SUPABASE_URL}/storage/v1/object/public/${PROJECT_IMAGES_BUCKET}/Profile.jpg`,
+  `${SUPABASE_URL}/storage/v1/object/public/${PROJECT_IMAGES_BUCKET}/Profile.PNG`,
+  `${SUPABASE_URL}/storage/v1/object/public/${PROJECT_IMAGES_BUCKET}/Profile.JPG`,
+  `${SUPABASE_URL}/storage/v1/object/public/${PROJECT_IMAGES_BUCKET}/profile.png`,
+  `${SUPABASE_URL}/storage/v1/object/public/${PROJECT_IMAGES_BUCKET}/profile.jpg`,
+  'images/profile.jpg'
+];
 
-        let resolvedImages = (remoteProj.images && remoteProj.images.length) ? remoteProj.images : localMatch.images;
-
-        // Tandai bendera team: true jika berkas adalah tim/team
-        if (Array.isArray(resolvedImages)) {
-          resolvedImages = resolvedImages.map(img => {
-            const isTeam = img.team || (typeof img.src === 'string' && (img.src.includes('/tim.') || img.src.includes('/team.') || img.src.includes('tim.png') || img.src.includes('tim.jpg')));
-            return isTeam ? { ...img, team: true } : img;
-          });
-        }
-
-        if (isHotel) {
-          // Booking hotel TIDAK ada foto tim (permintaan user)
-          if (Array.isArray(resolvedImages)) {
-            resolvedImages = resolvedImages.filter(img => !img.team && !img.src.includes('tim.') && !img.src.includes('team.'));
-          }
-        } else if (!isConfidential) {
-          // Jika data proyek remote belum menyertakan foto tim, namun localMatch memilikinya, sisipkan foto tim
-          const hasTeamInResolved = Array.isArray(resolvedImages) && resolvedImages.some(img => img.team);
-          if (!hasTeamInResolved && localMatch.images) {
-            const localTeamImg = localMatch.images.find(img => img.team);
-            if (localTeamImg) {
-              resolvedImages = [...(resolvedImages || []), localTeamImg];
-            }
-          }
-        }
-
-        if (isConfidential) {
-          const teamImg = Array.isArray(resolvedImages) ? resolvedImages.find(i => i.team || (typeof i.src === 'string' && (i.src.includes('tim.jpg') || i.src.includes('tim.png') || i.src.includes('tim.')))) : null;
-          resolvedImages = teamImg ? [teamImg] : localMatch.images;
-        }
-
-        return {
-          ...localMatch,
-          ...remoteProj,
-          is_confidential: isConfidential,
-          confidential_note: localMatch.confidential_note || remoteProj.confidential_note,
-          challenge: remoteProj.challenge || localMatch.challenge,
-          solution: remoteProj.solution || localMatch.solution,
-          impact: remoteProj.impact || localMatch.impact,
-          icon: remoteProj.icon || localMatch.icon,
-          gradient: remoteProj.gradient || localMatch.gradient,
-          images: resolvedImages
-        };
-      });
-      renderProjects(currentProjects);
-
-      const heroStatNumber = document.querySelector('.hero-stats .stat-item:first-child .stat-number');
-      if (heroStatNumber) {
-        heroStatNumber.dataset.target = data.length;
-        heroStatNumber.textContent = data.length + '+';
-      }
+window.handleProfileImgFallback = function handleProfileImgFallback(img) {
+  if (!img) return;
+  let idx = parseInt(img.dataset.fallbackIdx || '-1', 10);
+  const currentBase = (img.src || '').split('?')[0];
+  while (idx + 1 < PROFILE_CANDIDATES.length) {
+    idx += 1;
+    const nextUrl = PROFILE_CANDIDATES[idx];
+    if (nextUrl.split('?')[0] !== currentBase) {
+      img.dataset.fallbackIdx = String(idx);
+      img.src = nextUrl.startsWith('http') ? `${nextUrl}?t=${Date.now()}` : nextUrl;
+      return;
     }
-  } catch (err) { }
+  }
+  img.onerror = null;
+};
+
+function applyProfileUrl(url, version) {
+  if (!url) return;
+  const clean = url.trim().split('?')[0];
+  document.querySelectorAll('img[data-profile-img]').forEach((img) => {
+    img.dataset.fallbackIdx = '-1';
+    img.src = clean.startsWith('http') ? `${clean}?t=${version || Date.now()}` : clean;
+  });
+}
+
+async function loadProfileConfigFromSupabase() {
+  if (!supabaseClient) return;
+  try {
+    const { data, error } = await supabaseClient
+      .from('profile_settings')
+      .select('hero_image_url, about_image_url, image_url, updated_at')
+      .order('id', { ascending: false })
+      .limit(1);
+
+    if (!error && data && data.length) {
+      const row = data[0];
+      const url = row.hero_image_url || row.image_url || row.about_image_url;
+      const version = row.updated_at ? new Date(row.updated_at).getTime() : Date.now();
+      applyProfileUrl(url, version);
+    }
+  } catch (err) { /* abaikan */ }
+}
+
+function updateCvLinks(url) {
+  currentCvUrl = url || DEFAULT_CV_URL;
+  const cleanUrl = currentCvUrl.split('?')[0];
+  document.querySelectorAll('.js-cv-link').forEach((a) => {
+    a.href = `${cleanUrl}?v=${cvCacheVersion}`;
+  });
+}
+
+function getCvFreshUrl() {
+  const cleanUrl = (currentCvUrl || DEFAULT_CV_URL).split('?')[0];
+  // Selalu sertakan timestamp detik ini agar browser iframe selalu mengambil PDF versi terbaru dari Supabase
+  return `${cleanUrl}?v=${Date.now()}`;
+}
+
+async function loadCvConfigFromSupabase() {
+  updateCvLinks(DEFAULT_CV_URL);
+  if (!supabaseClient) return;
+  try {
+    const { data, error } = await supabaseClient
+      .from('cv_settings')
+      .select('cv_url, title, last_updated')
+      .order('id', { ascending: false })
+      .limit(1);
+
+    if (!error && data && data.length && data[0].cv_url) {
+      cvCacheVersion = data[0].last_updated ? new Date(data[0].last_updated).getTime() : Date.now();
+      updateCvLinks(data[0].cv_url);
+    }
+  } catch (err) { /* tetap memakai CV bawaan */ }
 }
 
 function setupSupabaseRealtime() {
@@ -951,1200 +1157,494 @@ function setupSupabaseRealtime() {
         loadProjectsFromSupabase();
       })
       .subscribe();
-  } catch (err) { }
-}
 
-// ============================================================
-// CV VIEWER & SUPABASE CV INTEGRATION
-// ============================================================
-const cvModalOverlay = document.getElementById('cv-modal-overlay');
-const cvModalClose = document.getElementById('cv-modal-close');
-const cvIframeContainer = document.getElementById('cv-iframe-container');
-const cvOpenTabBtn = document.getElementById('cv-open-tab');
-const cvModalDownloadBtn = document.getElementById('cv-modal-download');
-const cvRefreshBtn = document.getElementById('cv-refresh-btn');
-const cvSourceBadge = document.getElementById('cv-source-badge');
+    supabaseClient
+      .channel('profile-settings-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profile_settings' }, (payload) => {
+        const row = payload.new;
+        if (row) applyProfileUrl(row.hero_image_url || row.image_url || row.about_image_url, Date.now());
+      })
+      .subscribe();
 
-function updateCvLinks(url) {
-  currentCvUrl = url || DEFAULT_CV_URL;
-  const freshUrl = getCvFreshUrl(currentCvUrl);
-  if (cvOpenTabBtn) cvOpenTabBtn.href = freshUrl;
-  if (cvModalDownloadBtn) {
-    cvModalDownloadBtn.href = currentCvUrl;
-    cvModalDownloadBtn.setAttribute('download', 'CV-Rasya-Arfian-Akbar.pdf');
-  }
-
-  document.querySelectorAll('.btn-download-cv').forEach(btn => {
-    btn.href = currentCvUrl;
-    btn.setAttribute('download', 'CV-Rasya-Arfian-Akbar.pdf');
-  });
-}
-
-function renderCvFallback() {
-  if (!cvIframeContainer) return;
-  cvIframeContainer.innerHTML = `
-    <div class="cv-fallback-view">
-
-      <div class="cv-doc-header">
-        <h2 class="cv-doc-name">Rasya Arfian Akbar</h2>
-        <div class="cv-doc-role">Web &amp; Mobile Developer · D3 Manajemen Informatika Politeknik Astra</div>
-        <div class="cv-doc-contacts">
-          <span><i class="fa-solid fa-envelope"></i> rasyaarfiana@gmail.com</span>
-          <span><i class="fa-solid fa-graduation-cap"></i> 0320240064@polytechnic.astra.ac.id</span>
-          <span><i class="fa-solid fa-phone"></i> +62 812-8997-9099</span>
-          <span><i class="fa-solid fa-location-dot"></i> Bogor, Indonesia</span>
-          <span><i class="fa-brands fa-linkedin"></i> <a href="https://www.linkedin.com/in/rasya-arfian-akbar-577b12404" target="_blank" rel="noopener" style="color:inherit; text-decoration:underline;">linkedin.com/in/rasya-arfian-akbar-577b12404</a></span>
-          <span><i class="fa-brands fa-instagram"></i> @rasyaarfian</span>
-        </div>
-      </div>
-
-      <div class="cv-doc-section">
-        <h3 class="cv-doc-section-title"><i class="fa-solid fa-user"></i> Ringkasan Profesional</h3>
-        <p class="cv-doc-item-desc">
-          Mahasiswa Manajemen Informatika di Politeknik Astra memiliki pengalaman terkait membangun sebuah aplikasi mobile, web developer, merancang tampilan UI/UX, analisis kebutuhan sistem pada pengembangan aplikasi dan mengelola sistem database. Mahir menggunakan React Native, React.js, Next.js, C, Java, Java Spring Boot, dan Laravel. Memiliki kemampuan bekerja secara individu maupun dalam tim, mendukung komunikasi antar tim yang baik dan menganalisis setiap tugas dengan cermat. Memiliki pengalaman aktif dalam organisasi dan kepanitiaan.
-        </p>
-      </div>
-
-      <div class="cv-doc-section">
-        <h3 class="cv-doc-section-title"><i class="fa-solid fa-graduation-cap"></i> Pendidikan</h3>
-        <div class="cv-doc-item">
-          <div class="cv-doc-item-title">
-            <span>Politeknik Astra — Cikarang, Indonesia</span>
-            <span>Agustus 2024 — Sekarang</span>
-          </div>
-          <div class="cv-doc-item-sub">D3 Manajemen Informatika · GPA / IPK: 3.31 / 4.00</div>
-        </div>
-        <div class="cv-doc-item">
-          <div class="cv-doc-item-title">
-            <span>SMA Plus PGRI Cibinong — Bogor, Indonesia</span>
-            <span>Juli 2021 — Juni 2024</span>
-          </div>
-          <div class="cv-doc-item-sub">Ilmu Pengetahuan Alam (IPA)</div>
-        </div>
-      </div>
-
-      <div class="cv-doc-section">
-        <h3 class="cv-doc-section-title"><i class="fa-solid fa-diagram-project"></i> Proyek Utama</h3>
-        
-        <div class="cv-doc-item">
-          <div class="cv-doc-item-title">
-            <span>Chatbot Adenomyosis dan Endometriosis — BRIN</span>
-            <span>Juni 2026 — Sekarang</span>
-          </div>
-          <div class="cv-doc-item-sub">Project Member | Front-End Developer &amp; System Analyst</div>
-          <p class="cv-doc-item-desc">Aplikasi chatbot konsultasi dan edukasi seputar penyakit kewanitaan bersama Badan Riset dan Inovasi Nasional (BRIN) menggunakan Python dan JavaScript.</p>
-          <div class="cv-doc-tags">
-            <span class="cv-doc-tag">React Native</span>
-            <span class="cv-doc-tag">Django</span>
-            <span class="cv-doc-tag">Supabase</span>
-            <span class="cv-doc-tag">Qdrant</span>
-            <span class="cv-doc-tag">Figma</span>
-          </div>
-        </div>
-
-        <div class="cv-doc-item">
-          <div class="cv-doc-item-title">
-            <span>Booking Motor — Politeknik Astra</span>
-            <span>Juli 2026 — Agustus 2026</span>
-          </div>
-          <div class="cv-doc-item-sub">Project Member | Back-End Developer &amp; Front-End Developer</div>
-          <p class="cv-doc-item-desc">Mengembangkan fungsi Booking motor untuk proyek migrasi PT Astra Honda Motor (AHM).</p>
-          <div class="cv-doc-tags">
-            <span class="cv-doc-tag">Java</span>
-            <span class="cv-doc-tag">Oracle SQL Developer</span>
-            <span class="cv-doc-tag">Postman</span>
-            <span class="cv-doc-tag">SonarQube</span>
-          </div>
-        </div>
-
-        <div class="cv-doc-item">
-          <div class="cv-doc-item-title">
-            <span>Manajemen Asset — Politeknik Astra</span>
-            <span>Oktober 2025 — Februari 2026</span>
-          </div>
-          <div class="cv-doc-item-sub">Project Member | Full-stack Developer, UI/UX Designer &amp; System Analyst</div>
-          <p class="cv-doc-item-desc">Membangun website inventaris PHP &amp; MySQL dengan fitur pelaporan maintenance barang.</p>
-          <div class="cv-doc-tags">
-            <span class="cv-doc-tag">PHP</span>
-            <span class="cv-doc-tag">MySQL</span>
-            <span class="cv-doc-tag">Figma</span>
-            <span class="cv-doc-tag">Draw.io</span>
-          </div>
-        </div>
-
-        <div class="cv-doc-item">
-          <div class="cv-doc-item-title">
-            <span>Migrasi Sistem Informasi Akademik Web — Politeknik Astra</span>
-            <span>September 2025 — Mei 2026</span>
-          </div>
-          <div class="cv-doc-item-sub">Project Member | Full-stack Developer</div>
-          <p class="cv-doc-item-desc">Migrasi dan refactoring website SIA ke Next.js dan backend ASP.NET 8.0 dengan database SQL Server.</p>
-          <div class="cv-doc-tags">
-            <span class="cv-doc-tag">Next.js</span>
-            <span class="cv-doc-tag">ASP.NET 8.0</span>
-            <span class="cv-doc-tag">C#</span>
-            <span class="cv-doc-tag">SQL Server</span>
-          </div>
-        </div>
-
-        <div class="cv-doc-item">
-          <div class="cv-doc-item-title">
-            <span>Aplikasi Dekstop Karaoke Poprock — Politeknik Astra</span>
-            <span>Mei 2025 — Juli 2026</span>
-          </div>
-          <div class="cv-doc-item-sub">Project Member | Fullstack Developer, UI/UX &amp; System Analyst</div>
-          <p class="cv-doc-item-desc">Dua aplikasi desktop operasional staf dan kasir terintegrasi SQL Server.</p>
-          <div class="cv-doc-tags">
-            <span class="cv-doc-tag">Java</span>
-            <span class="cv-doc-tag">JavaFX</span>
-            <span class="cv-doc-tag">C#</span>
-            <span class="cv-doc-tag">SQL Server</span>
-          </div>
-        </div>
-
-        <div class="cv-doc-item">
-          <div class="cv-doc-item-title">
-            <span>Aplikasi Dekstop Booking Hotel — Politeknik Astra</span>
-            <span>Desember 2024 — Februari 2025</span>
-          </div>
-          <div class="cv-doc-item-sub">Project Member | Fullstack Developer, UI/UX &amp; System Analyst</div>
-          <p class="cv-doc-item-desc">Aplikasi desktop booking hotel berbasis bahasa C dengan modul transaksi kamar dan member.</p>
-          <div class="cv-doc-tags">
-            <span class="cv-doc-tag">Bahasa C</span>
-            <span class="cv-doc-tag">Draw.io</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="cv-doc-section">
-        <h3 class="cv-doc-section-title"><i class="fa-solid fa-certificate"></i> Sertifikasi &amp; Pelatihan</h3>
-        <p class="cv-doc-item-desc">
-          • <strong>MikroTik Certified Network Associate (MTCNA)</strong> — Mikrotikls SIA (Riga, Latvia), 2026 (No: 2601NA2655)<br>
-          • <strong>Artificial Intelligence</strong> — Lembaga Kursus Bisa AI Academy, 2026 (No: 2026/506/69181)<br>
-          • <strong>Dasar - Dasar Node JS</strong> — LPK &amp; LKP Bisa AI Academy, 2026 (No: 2026/412/69181)<br>
-          • <strong>Basic Excel</strong> — Lembaga Kursus Bisa AI Academy, 2026 (No: 2026/294/69181)<br>
-          • <strong>Dasar - Dasar Python</strong> — Lembaga Kursus Bisa AI Academy, 2026 (No: 2026/249/69181)<br>
-          • <strong>Python Fundamental</strong> — Aguna Course, 2025 (No: AC-315-33886729-97)<br>
-          • <strong>Linux Fundamental</strong> — Aguna Course, 2025 (No: AC-050-75298727-98)<br>
-          • <strong>Virtual Machine Fundamental</strong> — Aguna Course, 2025 (No: AC-446-15449133-19)<br>
-          • <strong>Simulasi Jaringan dengan PNETLab</strong> — Aguna Course, 2025 (No: AC-205-42646055-11)<br>
-          • <strong>Basic Figma: Pembuatan UI Aplikasi Mobile</strong>, 2026
-        </p>
-      </div>
-
-      <div class="cv-doc-section">
-        <h3 class="cv-doc-section-title"><i class="fa-solid fa-users"></i> Organisasi &amp; Kepanitiaan</h3>
-        <p class="cv-doc-item-desc">
-          • <strong>HIMAMI Politeknik Astra (2026 - 2027)</strong> — Ketua Departemen Divisi Publikasi, Humas dan Dokumentasi<br>
-          • <strong>Seminar Forum Ilmiah 2026 (Mei 2026)</strong> — Koordinator Divisi Publikasi, Humas dan Dokumentasi<br>
-          • <strong>HIMAMI Politeknik Astra (2025 - 2026)</strong> — Anggota Divisi Publikasi, Humas dan Dokumentasi<br>
-          • <strong>Hello Project 2025 &amp; IDENTITAS 2025</strong> — Koordinator Publikasi, Desain dan Dokumentasi<br>
-          • <strong>SPARTCO 2025</strong> — Anggota Panitia Publikasi, Desain dan Dokumentasi<br>
-          • <strong>UI/UX Training (2025)</strong> — Anggota Panitia Publikasi, Desain dan Dokumentasi
-        </p>
-      </div>
-    </div>
-  `;
-}
-
-function switchCvView(mode) {
-  currentCvViewMode = mode;
-  const btnPdf = document.getElementById('btn-toggle-pdf');
-  const btnInteractive = document.getElementById('btn-toggle-interactive');
-
-  if (btnPdf && btnInteractive) {
-    btnPdf.classList.toggle('active', mode === 'pdf');
-    btnInteractive.classList.toggle('active', mode === 'interactive');
-  }
-
-  if (!cvIframeContainer) return;
-
-  if (mode === 'pdf') {
-    const previewUrl = getCvFreshUrl(currentCvUrl);
-    cvIframeContainer.innerHTML = `
-      <object 
-        data="${previewUrl}" 
-        type="application/pdf" 
-        style="width: 100%; height: 100%; border: none;">
-        <iframe 
-          src="https://docs.google.com/viewer?url=${encodeURIComponent(previewUrl)}&embedded=true" 
-          title="CV Rasya Arfian Akbar" 
-          style="width: 100%; height: 100%; border: none;">
-        </iframe>
-      </object>
-    `;
-  } else {
-    renderCvFallback();
-  }
-}
-
-function openCvModal(preferredMode) {
-  if (!cvModalOverlay) return;
-  cvModalOverlay.classList.add('active');
-  document.body.style.overflow = 'hidden';
-  // Selalu perbarui token cache setiap kali modal dibuka agar browser merender PDF paling baru dari Supabase
-  cvCacheVersion = Date.now();
-  updateCvLinks(currentCvUrl);
-  const initialMode = preferredMode || currentCvViewMode || 'pdf';
-  switchCvView(initialMode);
-}
-
-function refreshCvDocument() {
-  cvCacheVersion = Date.now();
-  updateCvLinks(currentCvUrl);
-  if (currentCvViewMode === 'pdf') {
-    switchCvView('pdf');
-  }
-  if (cvSourceBadge) {
-    cvSourceBadge.innerHTML = '<i class="fa-solid fa-arrows-rotate fa-spin"></i> Memuat versi terbaru...';
-    setTimeout(() => {
-      cvSourceBadge.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Terhubung &amp; Tersinkronisasi Supabase';
-    }, 700);
-  }
-  showToast('Dokumen CV terbaru berhasil dimuat ulang!');
-}
-
-if (cvRefreshBtn) {
-  cvRefreshBtn.addEventListener('click', refreshCvDocument);
-}
-
-function closeCvModal() {
-  if (!cvModalOverlay) return;
-  cvModalOverlay.classList.remove('active');
-  document.body.style.overflow = '';
-}
-
-if (cvModalClose) cvModalClose.addEventListener('click', closeCvModal);
-if (cvModalOverlay) {
-  cvModalOverlay.addEventListener('click', (e) => {
-    if (e.target === cvModalOverlay) closeCvModal();
-  });
-}
-
-async function loadCvConfigFromSupabase() {
-  if (!supabaseClient) {
-    updateCvLinks(DEFAULT_CV_URL);
-    return;
-  }
-  try {
-    const { data, error } = await supabaseClient
-      .from('cv_settings')
-      .select('cv_url, title, last_updated')
-      .order('id', { ascending: false })
-      .limit(1);
-
-    if (error) {
-      updateCvLinks(DEFAULT_CV_URL);
-      return;
-    }
-
-    if (data && data.length > 0 && data[0].cv_url) {
-      cvCacheVersion = data[0].last_updated ? new Date(data[0].last_updated).getTime() : Date.now();
-      updateCvLinks(data[0].cv_url);
-      if (cvSourceBadge) {
-        cvSourceBadge.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Terhubung &amp; Tersinkronisasi Supabase';
-      }
-    } else {
-      updateCvLinks(DEFAULT_CV_URL);
-    }
-  } catch (err) {
-    updateCvLinks(DEFAULT_CV_URL);
-  }
-}
-
-function setupCvRealtime() {
-  if (!supabaseClient) return;
-  try {
     supabaseClient
       .channel('cv-settings-sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'cv_settings' }, (payload) => {
         if (payload.new && payload.new.cv_url) {
           cvCacheVersion = Date.now();
           updateCvLinks(payload.new.cv_url);
-          if (cvModalOverlay && cvModalOverlay.classList.contains('active')) {
-            openCvModal();
-          }
         }
       })
       .subscribe();
-  } catch (err) { }
+  } catch (err) { /* realtime opsional */ }
 }
 
-function setupCvTriggers() {
-  document.querySelectorAll('.btn-preview-cv').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      openCvModal();
-    });
-  });
+/* ---------- Inisialisasi bagian proyek ---------- */
+function initProjectFilterAndSearch() {
+  const filterBtns = document.querySelectorAll('.proj-filter-btn');
+  const searchInput = document.getElementById('proj-search-input');
+  const list = document.querySelector('.projects-monograph-list');
 
-  const btnNavCv = document.getElementById('btn-nav-cv');
-  if (btnNavCv) btnNavCv.addEventListener('click', (e) => { e.preventDefault(); openCvModal(); });
+  // 1) Tampilkan data cadangan lebih dulu, lalu timpa dengan data Supabase
+  renderProjectCards(currentProjects, false);
+  initImageExtensionFallback();
 
-  const btnHeroCv = document.getElementById('btn-hero-cv');
-  if (btnHeroCv) btnHeroCv.addEventListener('click', (e) => { e.preventDefault(); openCvModal(); });
-
-  const btnViewCv = document.getElementById('btn-view-cv');
-  if (btnViewCv) btnViewCv.addEventListener('click', (e) => { e.preventDefault(); openCvModal(); });
-}
-
-// ============================================================
-// CERTIFICATE MODAL
-// ============================================================
-const certModalOverlay = document.getElementById('cert-modal-overlay');
-const certModalContent = document.getElementById('cert-modal-content');
-const certModalClose = document.getElementById('cert-modal-close');
-
-async function loadCertDocumentPreview(containerId, c) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-
-  const aliases = [c.slug];
-  if (c.slug === 'basic-excel') aliases.push('basis-excel');
-  if (c.slug === 'dasar-python') aliases.push('dasar-dasar-python');
-  if (c.slug === 'simulasi-jaringan-pnetlab') aliases.push('network-simulation', 'pnetlab');
-  if (c.slug === 'linux-fundamental') aliases.push('linux');
-
-  const candidates = [];
-  aliases.forEach(slug => {
-    candidates.push(
-      { url: `certificates/${slug}.pdf`, type: 'pdf', label: 'Folder Lokal (certificates/)' },
-      { url: `certificates/${slug}.png`, type: 'image', label: 'Folder Lokal (certificates/)' },
-      { url: `certificates/${slug}.jpg`, type: 'image', label: 'Folder Lokal (certificates/)' },
-      { url: `certificates/${slug}.jpeg`, type: 'image', label: 'Folder Lokal (certificates/)' },
-      { url: `${CERTIFICATES_BASE_URL}${slug}.pdf`, type: 'pdf', label: 'Supabase Storage' },
-      { url: `${CERTIFICATES_BASE_URL}${slug}.png`, type: 'image', label: 'Supabase Storage' },
-      { url: `${CERTIFICATES_BASE_URL}${slug}.jpg`, type: 'image', label: 'Supabase Storage' }
-    );
-  });
-
-  let found = null;
-  for (const cand of candidates) {
-    try {
-      const res = await fetch(cand.url, { method: 'HEAD' });
-      if (res.ok) {
-        found = cand;
-        break;
-      }
-    } catch (e) { }
-  }
-
-  if (found) {
-    if (found.type === 'pdf') {
-      container.innerHTML = `
-        <div style="padding: 10px 16px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; font-size: 0.82rem;">
-          <span style="font-weight: 700; color: var(--text-heading); display: flex; align-items: center; gap: 8px;">
-            <i class="fa-solid fa-file-lines" style="color: var(--blue-600); font-size: 1rem;"></i> ${c.title}
-          </span>
-        </div>
-        
-        <div class="cert-pdf-container" style="position: relative; height: 440px; background: #0f172a;">
-          <object data="${found.url}" type="application/pdf" style="width: 100%; height: 100%; border: none;">
-            <iframe 
-              src="https://docs.google.com/viewer?url=${encodeURIComponent(found.url)}&embedded=true" 
-              class="cert-pdf-iframe" 
-              title="Sertifikat ${c.title}"
-              style="width: 100%; height: 100%; border: none;">
-            </iframe>
-          </object>
-        </div>
-
-        <div class="cert-doc-toolbar">
-          <div class="cert-doc-meta">
-            <i class="fa-solid fa-circle-check" style="color: #10b981; font-size: 1.1rem; flex-shrink: 0;"></i>
-            <span>Penerbit Resmi: <strong>${c.issuer}</strong></span>
-          </div>
-          <div class="cert-doc-actions">
-            <a href="${found.url}" target="_blank" rel="noopener" class="btn-outline-blue btn-sm">
-              <i class="fa-solid fa-arrow-up-right-from-square"></i> Tab Baru
-            </a>
-            <a href="${found.url}" download="${c.slug}.pdf" target="_blank" rel="noopener" class="btn-primary btn-sm">
-              <i class="fa-solid fa-download"></i> Unduh Sertifikat
-            </a>
-          </div>
-        </div>
-      `;
-    } else {
-      container.innerHTML = `
-        <div style="padding: 10px 16px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; font-size: 0.82rem;">
-          <span style="font-weight: 700; color: var(--text-heading); display: flex; align-items: center; gap: 8px;">
-            <i class="fa-solid fa-image" style="color: #3b82f6; font-size: 1rem;"></i> ${c.title}
-          </span>
-        </div>
-        
-        <div style="position: relative; background: #060b16; display: flex; align-items: center; justify-content: center; padding: 18px; min-height: 360px;">
-          <img src="${found.url}" alt="${c.title}" style="border-radius: 6px; max-height: 460px; width: auto; max-width: 100%;">
-        </div>
-
-        <div class="cert-doc-toolbar">
-          <div class="cert-doc-meta">
-            <i class="fa-solid fa-circle-check" style="color: #10b981; font-size: 1.1rem;"></i>
-            <span>Penerbit Resmi: <strong>${c.issuer}</strong></span>
-          </div>
-          <div class="cert-doc-actions">
-            <a href="${found.url}" target="_blank" rel="noopener" class="btn-outline-blue btn-sm">
-              <i class="fa-solid fa-arrow-up-right-from-square"></i> Lihat Ukuran Penuh
-            </a>
-            <a href="${found.url}" download target="_blank" rel="noopener" class="btn-primary btn-sm">
-              <i class="fa-solid fa-download"></i> Unduh Gambar
-            </a>
-          </div>
-        </div>
-      `;
-    }
-  } else {
-    container.innerHTML = `
-      <div class="cert-doc-empty-state">
-        <div class="cert-doc-empty-icon">
-          <i class="fa-solid fa-file-lines"></i>
-        </div>
-        <h3 style="font-family: var(--font-heading); font-size: 1.1rem; color: var(--text-heading);">Dokumen Sertifikat Siap Dihubungkan</h3>
-        <p style="font-size: 0.86rem; color: var(--text-muted); max-width: 440px;">
-          Dokumen sertifikat resmi siap ditampilkan di sini begitu berkas diunggah ke sistem penyimpanan.
-        </p>
-        <div style="display: flex; gap: 10px; margin-top: 6px;">
-          <button type="button" class="btn-primary btn-sm" onclick="switchCertTab('detail')">
-            <i class="fa-solid fa-list-check"></i> Rincian &amp; Silabus Pelatihan
-          </button>
-        </div>
-      </div>
-    `;
-  }
-}
-
-function getCertIconClass(iconStr) {
-  if (!iconStr) return 'fa-solid fa-award';
-  if (iconStr.startsWith('fa-solid ') || iconStr.startsWith('fa-brands ') || iconStr.startsWith('fa-regular ')) {
-    return iconStr;
-  }
-  const brandIcons = ['fa-figma', 'fa-node-js', 'fa-python', 'fa-linux', 'fa-github', 'fa-react', 'fa-vuejs', 'fa-js', 'fa-html5', 'fa-css3-alt'];
-  if (brandIcons.includes(iconStr)) {
-    return `fa-brands ${iconStr}`;
-  }
-  return `fa-solid ${iconStr}`;
-}
-
-function openCertModal(index) {
-  const c = certificationsData[index];
-  if (!c || !certModalContent || !certModalOverlay) return;
-
-  const extraBadgesHtml = (c.level || c.modules || c.points || c.rating || c.progress) ? `
-    <div style="display:flex; flex-wrap:wrap; gap:8px; margin: 14px 0 18px;">
-      ${c.level ? `<span class="modal-tag"><i class="fa-solid fa-layer-group"></i> Level: ${c.level}</span>` : ''}
-      ${c.modules ? `<span class="modal-tag"><i class="fa-solid fa-book-open"></i> ${c.modules}</span>` : ''}
-      ${c.points ? `<span class="modal-tag"><i class="fa-solid fa-coins"></i> ${c.points}</span>` : ''}
-      ${c.rating ? `<span class="modal-tag"><i class="fa-solid fa-star"></i> ${c.rating}</span>` : ''}
-      ${c.progress ? `<span class="modal-tag"><i class="fa-solid fa-circle-check"></i> ${c.progress}</span>` : ''}
-    </div>
-  ` : '';
-
-  const formattedDescription = (c.description || '')
-    .split('\n\n')
-    .map(p => {
-      const trimmed = p.trim();
-      if (trimmed.startsWith('Poin Pembahasan') || trimmed.includes('•')) {
-        const lines = trimmed.split('\n');
-        const header = lines[0].includes('•') ? '' : `<p style="font-weight:700; color:var(--text-heading); margin:12px 0 6px;">${lines[0]}</p>`;
-        const items = lines.filter(l => l.includes('•')).map(l => `<li style="margin-bottom:6px;">${l.replace(/^•\s*/, '')}</li>`).join('');
-        return header + (items ? `<ul style="margin:0 0 10px 18px; padding:0; color:var(--text-body); line-height:1.65;">${items}</ul>` : '');
-      }
-      return `<p style="margin-bottom:12px; line-height:1.7;">${trimmed}</p>`;
-    })
-    .join('');
-
-  certModalContent.innerHTML = `
-    <div class="cert-modal-header">
-      <div class="cert-modal-icon">
-        <i class="${getCertIconClass(c.icon)}"></i>
-      </div>
-      <div style="flex: 1; min-width: 0;">
-        <span class="cert-badge-status"><i class="fa-solid fa-circle-check"></i> Kredensial Terverifikasi</span>
-        <h2 class="cert-modal-title" style="font-family: var(--font-heading); font-size: 1.35rem; color: var(--text-heading); margin: 6px 0 2px;">${c.title}</h2>
-        <span style="font-size: 0.84rem; color: var(--text-muted); font-weight: 600;">${c.date ? `Tanggal: ${c.date} · ` : `Tahun: ${c.year} · `}${c.issuer}</span>
-      </div>
-    </div>
-
-    <div class="cert-tabs" style="margin-bottom: 18px;">
-      <button type="button" class="cert-tab-btn active" id="cert-tab-btn-doc" onclick="switchCertTab('doc')">
-        <i class="fa-solid fa-file-lines"></i> Dokumen Sertifikat
-      </button>
-      <button type="button" class="cert-tab-btn" id="cert-tab-btn-detail" onclick="switchCertTab('detail')">
-        <i class="fa-solid fa-list-check"></i> Rincian &amp; Silabus
-      </button>
-    </div>
-
-    <div class="cert-tab-panel" id="cert-panel-doc">
-      <div class="cert-doc-container" id="cert-doc-container-box">
-        <div style="padding: 40px; text-align: center; color: var(--text-muted);">
-          <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 1.5rem; margin-bottom: 8px;"></i>
-          <p style="font-size: 0.85rem; margin: 0;">Memeriksa ketersediaan dokumen sertifikat...</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="cert-tab-panel" id="cert-panel-detail" style="display:none;">
-      ${extraBadgesHtml}
-
-      <div style="background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 20px; margin-bottom: 20px;">
-        <h4 style="font-size: 0.8rem; font-weight: 800; text-transform: uppercase; color: var(--text-heading); margin-bottom: 6px;">Bidang Kompetensi</h4>
-        <p style="font-size: 0.9rem; color: var(--blue-600); font-weight: 600; margin-bottom: 16px;">${c.category}</p>
-        
-        <h4 style="font-size: 0.8rem; font-weight: 800; text-transform: uppercase; color: var(--text-heading); margin-bottom: 6px;">Deskripsi &amp; Capaian Pelatihan</h4>
-        <div style="font-size: 0.9rem; color: var(--text-body); line-height: 1.7; margin: 0;">${formattedDescription}</div>
-      </div>
-    </div>
-
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top: 4px;">
-      <span style="font-size: 0.82rem; color: var(--text-muted);"><i class="fa-solid fa-barcode"></i> ID / No. Sertifikat: <strong>${c.credentialId}</strong>${c.verifyUrl ? ` · <a href="${c.verifyUrl}" target="_blank" rel="noopener" style="color:var(--blue-600); text-decoration:underline; font-weight:600;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Cek Verifikasi</a>` : ''}</span>
-      <button class="btn-primary btn-sm" onclick="closeCertModal()">
-        <i class="fa-solid fa-check"></i> Tutup
-      </button>
-    </div>
-  `;
-
-  certModalOverlay.classList.add('active');
-  document.body.style.overflow = 'hidden';
-
-  loadCertDocumentPreview('cert-doc-container-box', c);
-}
-
-window.switchCertTab = function switchCertTab(tab) {
-  const btnDoc = document.getElementById('cert-tab-btn-doc');
-  const btnDetail = document.getElementById('cert-tab-btn-detail');
-  const panelDoc = document.getElementById('cert-panel-doc');
-  const panelDetail = document.getElementById('cert-panel-detail');
-
-  if (tab === 'doc') {
-    if (btnDoc) btnDoc.classList.add('active');
-    if (btnDetail) btnDetail.classList.remove('active');
-    if (panelDoc) panelDoc.style.display = 'block';
-    if (panelDetail) panelDetail.style.display = 'none';
-  } else {
-    if (btnDoc) btnDoc.classList.remove('active');
-    if (btnDetail) btnDetail.classList.add('active');
-    if (panelDoc) panelDoc.style.display = 'none';
-    if (panelDetail) panelDetail.style.display = 'block';
-  }
-};
-
-function closeCertModal() {
-  if (!certModalOverlay) return;
-  certModalOverlay.classList.remove('active');
-  document.body.style.overflow = '';
-}
-
-if (certModalClose) certModalClose.addEventListener('click', closeCertModal);
-if (certModalOverlay) {
-  certModalOverlay.addEventListener('click', (e) => {
-    if (e.target === certModalOverlay) closeCertModal();
-  });
-}
-
-// ============================================================
-// COMMAND PALETTE (Ctrl + K)
-// ============================================================
-const cmdModalOverlay = document.getElementById('cmd-modal-overlay');
-const cmdTrigger = document.getElementById('cmd-trigger');
-const cmdClose = document.getElementById('cmd-close');
-const cmdInput = document.getElementById('cmd-input');
-const cmdList = document.getElementById('cmd-list');
-
-const quickCommands = [
-  { title: 'Lihat Dokumen CV (PDF & Interaktif)', icon: 'fa-file-pdf', tag: 'Dokumen', action: () => openCvModal() },
-  { title: 'Salin Email Utama (rasyaarfiana@gmail.com)', icon: 'fa-envelope', tag: 'Kontak', action: () => copyText('rasyaarfiana@gmail.com', 'Email Utama') },
-  { title: 'Hubungi via WhatsApp (+62 812-8997-9099)', icon: 'fa-brands fa-whatsapp', tag: 'Pesan', action: () => window.open('https://wa.me/6281289979099', '_blank') },
-  { title: 'Ubah Tema (Terang / Gelap)', icon: 'fa-circle-half-stroke', tag: 'Tampilan', action: () => themeToggleBtn && themeToggleBtn.click() },
-  { title: 'Lompat ke Proyek Unggulan', icon: 'fa-diagram-project', tag: 'Navigasi', action: () => location.href = '#projects' },
-  { title: 'Lompat ke Keahlian & Teknologi', icon: 'fa-laptop-code', tag: 'Navigasi', action: () => location.href = '#skills' },
-  { title: 'Lompat ke Sertifikasi & Pelatihan', icon: 'fa-certificate', tag: 'Navigasi', action: () => location.href = '#certifications' },
-  { title: 'Lompat ke Timeline Perjalanan', icon: 'fa-timeline', tag: 'Navigasi', action: () => location.href = '#timeline' },
-];
-
-function renderCommandList(query = '') {
-  if (!cmdList) return;
-  const q = query.toLowerCase().trim();
-
-  const projectCommands = currentProjects.map((p, idx) => ({
-    title: `Proyek: ${p.title}`,
-    icon: p.icon || 'fa-code',
-    tag: 'Studi Kasus',
-    action: () => openModal(idx)
-  }));
-
-  const allCommands = [...quickCommands, ...projectCommands].filter(item =>
-    item.title.toLowerCase().includes(q) || item.tag.toLowerCase().includes(q)
-  );
-
-  cmdList.innerHTML = allCommands.map((item, idx) => `
-    <button type="button" class="cmd-item" data-cmd-idx="${idx}">
-      <div class="cmd-item-left">
-        <i class="fa-solid ${item.icon}"></i>
-        <span>${item.title}</span>
-      </div>
-      <span class="cmd-item-tag">${item.tag}</span>
-    </button>
-  `).join('');
-
-  cmdList.querySelectorAll('.cmd-item').forEach((btn, idx) => {
+  filterBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
-      closeCmdModal();
-      allCommands[idx].action();
+      filterBtns.forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeProjCat = btn.dataset.filter || 'all';
+      applyProjectFilter();
     });
   });
-}
 
-function openCmdModal() {
-  if (!cmdModalOverlay) return;
-  cmdModalOverlay.classList.add('active');
-  if (cmdInput) {
-    cmdInput.value = '';
-    setTimeout(() => cmdInput.focus(), 50);
-  }
-  renderCommandList('');
-}
-
-function closeCmdModal() {
-  if (!cmdModalOverlay) return;
-  cmdModalOverlay.classList.remove('active');
-}
-
-if (cmdTrigger) cmdTrigger.addEventListener('click', openCmdModal);
-if (cmdClose) cmdClose.addEventListener('click', closeCmdModal);
-if (cmdModalOverlay) {
-  cmdModalOverlay.addEventListener('click', (e) => {
-    if (e.target === cmdModalOverlay) closeCmdModal();
-  });
-}
-if (cmdInput) {
-  cmdInput.addEventListener('input', (e) => renderCommandList(e.target.value));
-}
-
-// ============================================================
-// NAVBAR & SCROLL PROGRESS BAR
-// ============================================================
-const navbar = document.getElementById('navbar');
-const hamburger = document.getElementById('hamburger');
-const navLinks = document.getElementById('nav-links');
-const scrollProgressBar = document.getElementById('scroll-progress');
-
-if (navbar && hamburger && navLinks) {
-  hamburger.addEventListener('click', () => {
-    navbar.classList.toggle('mobile-open');
-    navLinks.classList.toggle('open');
-  });
-
-  document.querySelectorAll('.nav-link').forEach(link => {
-    link.addEventListener('click', () => {
-      navbar.classList.remove('mobile-open');
-      navLinks.classList.remove('open');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      projSearchQuery = e.target.value.trim().toLowerCase();
+      applyProjectFilter();
     });
-  });
-}
-
-const sections = document.querySelectorAll('section[id]');
-const allNavLinks = document.querySelectorAll('.nav-link');
-
-function handleScroll() {
-  const scrollTop = window.scrollY;
-  if (navbar) navbar.classList.toggle('scrolled', scrollTop > 50);
-
-  if (scrollProgressBar) {
-    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-    const pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
-    scrollProgressBar.style.width = `${pct}%`;
   }
 
-  let current = '';
-  sections.forEach(section => {
-    const sectionTop = section.offsetTop - 130;
-    if (scrollTop >= sectionTop) {
-      current = section.getAttribute('id');
-    }
-  });
+  // 2) Delegasi klik: pengalih dokumentasi pada kartu & pembuka halaman detail
+  if (list) {
+    list.addEventListener('click', (e) => {
+      const docBtn = e.target.closest('.case-doc-btn');
+      const item = e.target.closest('.project-case-item');
+      if (!item) return;
 
-  allNavLinks.forEach(link => {
-    link.classList.remove('active');
-    if (link.getAttribute('href') === `#${current}`) {
-      link.classList.add('active');
-    }
-  });
-}
+      if (docBtn) {
+        const frame = item.querySelector('.case-img-frame');
+        const previewImg = item.querySelector('.case-main-preview-img');
+        const badge = item.querySelector('.case-doc-counter-badge');
+        const isMobile916 = docBtn.dataset.mobile === 'true';
+        const label = docBtn.dataset.label || '';
 
-window.addEventListener('scroll', handleScroll);
+        item.querySelectorAll('.case-doc-btn').forEach((b) => b.classList.remove('active'));
+        docBtn.classList.add('active');
 
-// ============================================================
-// INTERACTIVE PARTICLE CANVAS (Mouse-Reactive Constellation)
-// ============================================================
-(function initParticles() {
-  const canvas = document.getElementById('particle-canvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  let particles = [];
-  const mouse = { x: null, y: null, radius: 130 };
-
-  window.addEventListener('mousemove', (e) => {
-    mouse.x = e.clientX;
-    mouse.y = e.clientY;
-  });
-
-  function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-  }
-
-  function createParticles() {
-    particles = [];
-    const count = Math.min(65, Math.floor((canvas.width * canvas.height) / 18000));
-    for (let i = 0; i < count; i++) {
-      particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        r: Math.random() * 1.8 + 0.6,
-        dx: (Math.random() - 0.5) * 0.35,
-        dy: (Math.random() - 0.5) * 0.35,
-        alpha: Math.random() * 0.45 + 0.15,
-      });
-    }
-  }
-
-  function drawParticles() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    for (let i = 0; i < particles.length; i++) {
-      for (let j = i + 1; j < particles.length; j++) {
-        const dist = Math.hypot(particles[i].x - particles[j].x, particles[i].y - particles[j].y);
-        if (dist < 125) {
-          ctx.beginPath();
-          ctx.strokeStyle = `rgba(96, 165, 250, ${0.12 * (1 - dist / 125)})`;
-          ctx.lineWidth = 0.6;
-          ctx.moveTo(particles[i].x, particles[i].y);
-          ctx.lineTo(particles[j].x, particles[j].y);
-          ctx.stroke();
+        if (previewImg && docBtn.dataset.src) {
+          previewImg.dataset.extTried = '';
+          previewImg.style.visibility = '';
+          previewImg.src = docBtn.dataset.src;
         }
-      }
-    }
-
-    particles.forEach(p => {
-      if (mouse.x !== null && mouse.y !== null) {
-        const distMouse = Math.hypot(p.x - mouse.x, p.y - mouse.y);
-        if (distMouse < mouse.radius) {
-          ctx.beginPath();
-          ctx.strokeStyle = `rgba(56, 189, 248, ${0.22 * (1 - distMouse / mouse.radius)})`;
-          ctx.lineWidth = 0.8;
-          ctx.moveTo(p.x, p.y);
-          ctx.lineTo(mouse.x, mouse.y);
-          ctx.stroke();
+        if (frame) frame.classList.toggle('is-mobile-916', isMobile916);
+        if (badge && label) {
+          const isTeam = /tim/i.test(label);
+          const icon = isMobile916 ? 'fa-solid fa-mobile-screen-button' : (isTeam ? 'fa-solid fa-users' : 'fa-solid fa-desktop');
+          badge.innerHTML = `<i class="${icon}"></i> ${escHtml(label)}`;
         }
+        return;
       }
 
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(147, 197, 253, ${p.alpha})`;
-      ctx.fill();
-
-      p.x += p.dx;
-      p.y += p.dy;
-
-      if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
-      if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+      const idx = parseInt(item.dataset.projectIdx, 10);
+      if (!Number.isNaN(idx)) openProjectDetailPage(idx);
     });
-
-    requestAnimationFrame(drawParticles);
   }
 
-  window.addEventListener('resize', () => {
-    resizeCanvas();
-    createParticles();
+  const closeBtn = document.getElementById('btn-close-project-detail');
+  const bcRoot = document.getElementById('fd-bc-root');
+  if (closeBtn) closeBtn.addEventListener('click', closeProjectDetailPage);
+  if (bcRoot) bcRoot.addEventListener('click', closeProjectDetailPage);
+  window.addEventListener('keydown', (e) => {
+    const page = document.getElementById('project-detail-page');
+    if (e.key === 'Escape' && page && page.classList.contains('is-open')) closeProjectDetailPage();
   });
 
-  resizeCanvas();
-  createParticles();
-  drawParticles();
-})();
+  // 3) Sinkronisasi Supabase
+  loadProjectsFromSupabase();
+  loadProfileConfigFromSupabase();
+  loadCvConfigFromSupabase();
+  setupSupabaseRealtime();
+}
 
-// ============================================================
-// TYPED TEXT EFFECT
-// ============================================================
-(function initTyped() {
-  const el = document.getElementById('typed-text');
-  if (!el) return;
 
-  const texts = [
-    'Web & Mobile Developer',
-    'D3 Manajemen Informatika - Politeknik Astra',
-    'React Native & Full Stack Developer',
-    'UI/UX Designer & System Analyst',
-    'Database & Backend Enthusiast'
-  ];
+/* ==========================================================================
+   7. TIMELINE TABS
+   ========================================================================== */
+function initSkillTabs() {
+  const tabBtns = document.querySelectorAll('.skill-tab-btn');
+  const panels = document.querySelectorAll('.skill-panel');
 
-  let textIdx = 0;
-  let charIdx = 0;
-  let isDeleting = false;
+  tabBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.skillTarget;
+      tabBtns.forEach((b) => b.classList.remove('active'));
+      panels.forEach((p) => p.classList.remove('active'));
 
-  function type() {
-    const current = texts[textIdx];
+      btn.classList.add('active');
+      const panel = document.getElementById(targetId);
+      if (panel) panel.classList.add('active');
+    });
+  });
+}
 
-    if (isDeleting) {
-      el.textContent = current.substring(0, charIdx - 1);
-      charIdx--;
-    } else {
-      el.textContent = current.substring(0, charIdx + 1);
-      charIdx++;
-    }
+/* ==========================================================================
+   PDF POPUP MODAL (TANPA TAB BARU)
+   ========================================================================== */
+function openPdfModal(url, name) {
+  const modal = document.getElementById('pdf-modal');
+  const frame = document.getElementById('pdf-modal-frame');
+  const nameEl = document.getElementById('pdf-modal-name');
+  const dl = document.getElementById('pdf-modal-download');
+  if (!modal || !frame) return;
 
-    let speed = isDeleting ? 40 : 70;
+  // Pastikan URL selalu memiliki cache-buster dinamis agar browser PDF viewer (PDFium)
+  // tidak menampilkan dokumen lama dari cache browser lokal
+  const cleanUrl = url.split('#')[0];
+  const sep = cleanUrl.includes('?') ? '&' : '?';
+  const freshUrl = `${cleanUrl}${sep}_t=${Date.now()}`;
 
-    if (!isDeleting && charIdx === current.length) {
-      speed = 2200;
-      isDeleting = true;
-    } else if (isDeleting && charIdx === 0) {
-      isDeleting = false;
-      textIdx = (textIdx + 1) % texts.length;
-      speed = 350;
-    }
+  frame.src = 'about:blank';
+  setTimeout(() => {
+    frame.src = freshUrl;
+  }, 20);
 
-    setTimeout(type, speed);
+  if (nameEl) nameEl.textContent = name || 'Dokumen PDF';
+  if (dl) {
+    dl.href = freshUrl;
+    const downloadFileName = (name || 'Dokumen')
+      .replace(/[^a-zA-Z0-9_\-\.]/g, '_')
+      .replace(/_{2,}/g, '_');
+    dl.setAttribute('download', downloadFileName.endsWith('.pdf') ? downloadFileName : `${downloadFileName}.pdf`);
   }
-
-  type();
-})();
-
-// ============================================================
-// COUNTER & SKILL BAR ANIMATION
-// ============================================================
-function animateCounters() {
-  const counters = document.querySelectorAll('.stat-number');
-  counters.forEach(counter => {
-    const isDecimal = counter.dataset.decimal === 'true';
-    const rawTarget = counter.dataset.target;
-
-    if (isDecimal) {
-      const target = parseFloat(rawTarget);
-      let current = 0;
-      const duration = 1600;
-      const step = target / (duration / 16);
-
-      const update = () => {
-        current += step;
-        if (current < target) {
-          counter.textContent = current.toFixed(2);
-          requestAnimationFrame(update);
-        } else {
-          counter.textContent = target.toFixed(2);
-        }
-      };
-      update();
-    } else {
-      const target = parseInt(rawTarget, 10);
-      let current = 0;
-      const duration = 1600;
-      const step = Math.max(1, target / (duration / 16));
-
-      const update = () => {
-        current += step;
-        if (current < target) {
-          counter.textContent = Math.floor(current);
-          requestAnimationFrame(update);
-        } else {
-          counter.textContent = target + '+';
-        }
-      };
-      update();
-    }
-  });
-}
-
-function animateSkillBars() {
-  document.querySelectorAll('.skill-bar-fill').forEach(bar => {
-    bar.style.width = bar.dataset.width + '%';
-  });
-
-  document.querySelectorAll('.skill-segments').forEach((segContainer, itemIdx) => {
-    const level = parseInt(segContainer.dataset.level || '3', 10);
-    const segs = segContainer.querySelectorAll('.seg');
-    segContainer.classList.add('animated');
-    segs.forEach((seg, idx) => {
-      if (idx < level) {
-        setTimeout(() => {
-          seg.classList.add('active');
-        }, (itemIdx * 45) + (idx * 90));
-      }
-    });
-  });
-}
-
-// ============================================================
-// SCROLL REVEAL
-// ============================================================
-const revealElements = document.querySelectorAll(
-  '.skill-category-card, .project-card, .timeline-card, .contact-card, .about-grid, .tech-pill, .cert-card, .skills-extra-card'
-);
-
-revealElements.forEach(el => el.classList.add('reveal'));
-
-const observer = new IntersectionObserver(
-  (entries) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        const el = entry.target;
-        const delay = parseFloat(el.dataset.delay || 0) * 1000;
-        setTimeout(() => {
-          el.classList.add('visible');
-        }, delay);
-        observer.unobserve(el);
-      }
-    });
-  },
-  { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
-);
-
-revealElements.forEach((el, i) => {
-  el.dataset.delay = (i % 4) * 0.08;
-  observer.observe(el);
-});
-
-const heroSection = document.getElementById('home');
-const skillsSection = document.getElementById('skills');
-let countersAnimated = false;
-let skillsAnimated = false;
-
-const statsObserver = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting && !countersAnimated) {
-      countersAnimated = true;
-      animateCounters();
-    }
-  });
-}, { threshold: 0.4 });
-
-const skillsObserver = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting && !skillsAnimated) {
-      skillsAnimated = true;
-      animateSkillBars();
-    }
-  });
-}, { threshold: 0.2 });
-
-if (heroSection) statsObserver.observe(heroSection);
-if (skillsSection) skillsObserver.observe(skillsSection);
-
-// ============================================================
-// PROJECT FILTER & LIVE SEARCH
-// ============================================================
-const filterBtns = document.querySelectorAll('.filter-btn');
-const projectSearchInput = document.getElementById('project-search-input');
-
-filterBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    filterBtns.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    activeCategoryFilter = btn.dataset.filter;
-    renderProjects(currentProjects);
-  });
-});
-
-if (projectSearchInput) {
-  projectSearchInput.addEventListener('input', (e) => {
-    currentSearchQuery = e.target.value.trim();
-    renderProjects(currentProjects);
-  });
-}
-
-// ============================================================
-// TIMELINE TABS
-// ============================================================
-const tabBtns = document.querySelectorAll('.tab-btn');
-const timelineContents = document.querySelectorAll('.timeline-content');
-
-tabBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    tabBtns.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-
-    const tab = btn.dataset.tab;
-    timelineContents.forEach(content => content.classList.remove('active'));
-
-    let target = 'education-timeline';
-    if (tab === 'education') target = 'education-timeline';
-    else if (tab === 'organization') target = 'organization-timeline';
-    else if (tab === 'projects-timeline') target = 'projects-timeline-content';
-
-    const targetEl = document.getElementById(target);
-    if (targetEl) targetEl.classList.add('active');
-  });
-});
-
-// ============================================================
-// PROJECT MODAL DENGAN METODE STAR CASE STUDY
-// ============================================================
-const modalOverlay = document.getElementById('modal-overlay');
-const modalContent = document.getElementById('modal-content');
-const modalClose = document.getElementById('modal-close');
-
-function openModal(index) {
-  const p = currentProjects[index];
-  if (!p || !modalContent || !modalOverlay) return;
-
-  const rawFeatures = Array.isArray(p.features)
-    ? p.features
-    : (typeof p.features === 'string' && p.features.trim() ? p.features.split(',') : []);
-
-  const featuresHtml = rawFeatures.length > 0
-    ? `
-      <div class="modal-features">
-        <h4>Fitur &amp; Spesifikasi Proyek</h4>
-        <ul>${rawFeatures.map(f => `<li>${f.trim()}</li>`).join('')}</ul>
-      </div>
-    `
-    : '';
-
-  const githubLink = p.github_url || p.github;
-  const liveLink = p.live_url || p.live;
-  const figmaLink = p.figma_url || p.figma;
-
-  const linksHtml = [
-    (githubLink && githubLink !== '#') ? `<a href="${githubLink}" class="btn-primary" target="_blank" rel="noopener"><i class="fa-brands fa-github"></i> GitHub</a>` : '',
-    (figmaLink && figmaLink !== '#') ? `<a href="${figmaLink}" class="btn-primary" target="_blank" rel="noopener"><i class="fa-brands fa-figma"></i> Figma</a>` : '',
-    (liveLink && liveLink !== '#') ? `<a href="${liveLink}" class="btn-outline-blue" target="_blank" rel="noopener"><i class="fa-solid fa-globe"></i> Live Demo</a>` : '',
-  ].filter(Boolean).join('');
-
-  const imageHtml = buildModalGallery(p);
-
-  const rawTags = Array.isArray(p.tags)
-    ? p.tags
-    : (typeof p.tags === 'string' && p.tags.trim() ? p.tags.split(',') : []);
-  const tagsHtml = rawTags.map(t => `<span class="modal-tag">${t.trim()}</span>`).join('');
-
-  const starHtml = (p.challenge || p.solution || p.impact) ? `
-    <div style="margin: 22px 0;">
-      <h4 style="font-size: 0.82rem; font-weight: 800; text-transform: uppercase; color: var(--blue-600); letter-spacing: 0.08em; margin-bottom: 10px;">
-        <i class="fa-solid fa-bullseye"></i> Studi Kasus &amp; Analisis Rekayasa
-      </h4>
-      <div class="star-method-grid">
-        <div class="star-card challenge">
-          <div class="star-card-title"><i class="fa-solid fa-triangle-exclamation"></i> Tantangan</div>
-          <p>${p.challenge || 'Menyesuaikan kebutuhan fungsionalitas dan arsitektur sistem.'}</p>
-        </div>
-        <div class="star-card solution">
-          <div class="star-card-title"><i class="fa-solid fa-lightbulb"></i> Solusi Teknis</div>
-          <p>${p.solution || 'Penerapan arsitektur teknologi modern dan query teroptimasi.'}</p>
-        </div>
-        <div class="star-card impact">
-          <div class="star-card-title"><i class="fa-solid fa-chart-line"></i> Dampak / Hasil</div>
-          <p>${p.impact || 'Pencapaian performa sistem yang stabil dan teruji.'}</p>
-        </div>
-      </div>
-    </div>
-  ` : '';
-
-  const isConfidential = p.is_confidential || (p.title || '').toLowerCase().includes('booking motor');
-  const confidentialBannerHtml = isConfidential ? `
-    <div class="modal-confidential-banner">
-      <div class="modal-confidential-icon"><i class="fa-solid fa-shield-halved"></i></div>
-      <div class="modal-confidential-body">
-        <strong>Proyek Bersifat Kredensial</strong>
-        <p>${p.confidential_note || 'Tampilan antarmuka sistem dan struktur kode dilindungi kerahasiaan kredensial perusahaan. Oleh karena itu, dokumentasi visual yang ditampilkan khusus foto tim pengembang.'}</p>
-      </div>
-    </div>
-  ` : '';
-
-  modalContent.innerHTML = `
-    <div class="modal-img-wrap">
-      ${imageHtml}
-    </div>
-    <div class="modal-tags">
-      ${tagsHtml}
-    </div>
-    <h2 class="modal-title">${p.title}</h2>
-    ${confidentialBannerHtml}
-    <p class="modal-desc">${p.description || p.desc || ''}</p>
-    ${starHtml}
-    ${featuresHtml}
-    ${linksHtml ? `<div class="modal-actions">${linksHtml}</div>` : ''}
-  `;
-
-  modalOverlay.classList.add('active');
+  modal.classList.add('is-open');
+  modal.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
 }
 
-function closeModal() {
-  if (!modalOverlay) return;
-  modalOverlay.classList.remove('active');
+function closePdfModal() {
+  const modal = document.getElementById('pdf-modal');
+  const frame = document.getElementById('pdf-modal-frame');
+  if (!modal) return;
+  modal.classList.remove('is-open');
+  modal.setAttribute('aria-hidden', 'true');
+  if (frame) frame.src = 'about:blank';
   document.body.style.overflow = '';
 }
 
-if (modalClose) modalClose.addEventListener('click', closeModal);
-if (modalOverlay) {
-  modalOverlay.addEventListener('click', (e) => {
-    if (e.target === modalOverlay) closeModal();
+function initPdfModal() {
+  // Semua link PDF (kecuali tombol yang memang untuk unduh langsung) dibuka sebagai popup
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest('a[href*=".pdf"], a.js-cv-link');
+    if (link && !link.hasAttribute('download') && !link.closest('#pdf-modal')) {
+      e.preventDefault();
+      const isCv = link.classList.contains('js-cv-link');
+      const label = isCv ? 'CV - Rasya Arfian Akbar' : (link.textContent.replace(/\s+/g, ' ').trim() || 'Dokumen PDF');
+      openPdfModal(isCv ? getCvFreshUrl() : link.href, label);
+      return;
+    }
+    if (e.target.closest('[data-pdf-close]')) {
+      closePdfModal();
+    }
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closePdfModal();
   });
 }
 
-// Keyboard Shortcuts (Ctrl+K, Escape, Left/Right Gallery Navigation)
-document.addEventListener('keydown', (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-    e.preventDefault();
-    openCmdModal();
+function initTimelineTabs() {
+  const tabBtns = document.querySelectorAll('.tl-switcher-bar:not(.skill-switcher-bar) .tl-tab-btn');
+  const panels = document.querySelectorAll('.tl-panel');
+
+  tabBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.target;
+      tabBtns.forEach((b) => b.classList.remove('active'));
+      panels.forEach((p) => p.classList.remove('active'));
+
+      btn.classList.add('active');
+      const panel = document.getElementById(targetId);
+      if (panel) panel.classList.add('active');
+    });
+  });
+}
+
+/* ==========================================================================
+   8. SCROLL REVEAL OBSERVER
+   ========================================================================== */
+function initScrollReveal() {
+  const revealElements = document.querySelectorAll('.reveal-up');
+  if (!('IntersectionObserver' in window)) {
+    revealElements.forEach((el) => el.classList.add('is-visible'));
     return;
   }
 
-  if (e.key === 'Escape') {
-    closeModal();
-    closeCvModal();
-    closeCertModal();
-    closeCmdModal();
-  }
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
 
-  if (modalOverlay && modalOverlay.classList.contains('active')) {
-    const thumbs = Array.from(modalOverlay.querySelectorAll('.gallery-thumb'));
-    if (thumbs.length > 1 && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
-      const activeIdx = thumbs.findIndex(t => t.classList.contains('active'));
-      const nextIdx = e.key === 'ArrowRight'
-        ? (activeIdx + 1) % thumbs.length
-        : (activeIdx - 1 + thumbs.length) % thumbs.length;
-      selectGalleryImage(thumbs[nextIdx]);
-    }
-  }
-});
+  revealElements.forEach((el) => observer.observe(el));
+}
 
-// ============================================================
-// SMOOTH SCROLL
-// ============================================================
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-  anchor.addEventListener('click', function (e) {
-    const target = document.querySelector(this.getAttribute('href'));
-    if (target) {
+/* ==========================================================================
+   9. CLIPBOARD COPY & TOAST NOTIFICATION
+   ========================================================================== */
+function initCopyButtons() {
+  const copyBtns = document.querySelectorAll('[data-copy]');
+  const toast = document.getElementById('toast-box');
+  const toastText = document.getElementById('toast-text');
+  let toastTimer = null;
+
+  copyBtns.forEach((btn) => {
+    btn.addEventListener('click', (e) => {
       e.preventDefault();
-      const offset = 80;
-      const targetY = target.getBoundingClientRect().top + window.scrollY - offset;
-      window.scrollTo({ top: targetY, behavior: 'smooth' });
+      const val = btn.dataset.copy;
+      const label = btn.dataset.label || 'Teks';
+      if (!val) return;
+
+      navigator.clipboard.writeText(val).then(() => {
+        if (toast && toastText) {
+          toastText.textContent = `${label} berhasil disalin: ${val}`;
+          toast.classList.add('show');
+          clearTimeout(toastTimer);
+          toastTimer = setTimeout(() => {
+            toast.classList.remove('show');
+          }, 2600);
+        }
+      });
+    });
+  });
+}
+
+/* ==========================================================================
+   10. 3-CARD COVERFLOW CERTIFICATE SHOWCASE CAROUSEL (EXACT REFERENCE DESIGN)
+   ========================================================================== */
+function initCertShowcaseCarousel() {
+  const stage = document.getElementById('cert-carousel-stage');
+  const dotsWrap = document.getElementById('cert-pagination-dots');
+  if (!stage || !dotsWrap) return;
+
+  const CERTS_BASE = 'https://dhmabndpzrzacjrtoank.supabase.co/storage/v1/object/public/project-images/certificates/';
+
+  const certificates = [
+    {
+      issuerHeader: 'BISA AI ACADEMY',
+      title: 'Artificial Intelligence',
+      year: '2026',
+      date: '16 Oktober 2026',
+      credentialId: '2026/506/69181',
+      icon: 'fa-solid fa-brain',
+      pdfUrl: `${CERTS_BASE}artificial-intelligence.pdf`
+    },
+    {
+      issuerHeader: 'MIKROTIKLS SIA (LATVIA)',
+      title: 'MikroTik Certified Network Associate (MTCNA)',
+      year: '2026',
+      date: '31 Januari 2026',
+      credentialId: '2601NA2655',
+      icon: 'fa-solid fa-network-wired',
+      pdfUrl: `${CERTS_BASE}mtcna-mikrotik.pdf`
+    },
+    {
+      issuerHeader: 'BISA AI ACADEMY',
+      title: 'Basic Figma: Pembuatan UI Aplikasi Mobile',
+      year: '2026',
+      date: 'Oktober 2026',
+      credentialId: '2026/537/69181',
+      icon: 'fa-brands fa-figma',
+      pdfUrl: `${CERTS_BASE}basic-figma.pdf`
+    },
+    {
+      issuerHeader: 'BISA AI ACADEMY',
+      title: 'Dasar - Dasar Node JS',
+      year: '2026',
+      date: '17 Oktober 2026',
+      credentialId: '2026/412/69181',
+      icon: 'fa-brands fa-node-js',
+      pdfUrl: `${CERTS_BASE}dasar-nodejs.pdf`
+    },
+    {
+      issuerHeader: 'BISA AI ACADEMY',
+      title: 'Dasar - Dasar Python',
+      year: '2026',
+      date: '05 Agustus 2026',
+      credentialId: '2026/249/69181',
+      icon: 'fa-brands fa-python',
+      pdfUrl: `${CERTS_BASE}dasar-python.pdf`
+    },
+    {
+      issuerHeader: 'BISA AI ACADEMY',
+      title: 'Basic Excel',
+      year: '2026',
+      date: '17 Oktober 2026',
+      credentialId: '2026/294/69181',
+      icon: 'fa-solid fa-file-excel',
+      pdfUrl: `${CERTS_BASE}basic-excel.pdf`
+    },
+    {
+      issuerHeader: 'AGUNA COURSE',
+      title: 'Python Fundamental',
+      year: '2025',
+      date: '04 Agustus 2025',
+      credentialId: 'AC-315-33886729-97',
+      icon: 'fa-brands fa-python',
+      pdfUrl: `${CERTS_BASE}python-fundamental.pdf`
+    },
+    {
+      issuerHeader: 'AGUNA COURSE',
+      title: 'Linux Fundamental',
+      year: '2025',
+      date: '04 Agustus 2025',
+      credentialId: 'AC-050-75298727-98',
+      icon: 'fa-brands fa-linux',
+      pdfUrl: `${CERTS_BASE}linux-fundamental.pdf`
+    },
+    {
+      issuerHeader: 'AGUNA COURSE',
+      title: 'Virtual Machine Fundamental',
+      year: '2025',
+      date: '05 Mei 2025',
+      credentialId: 'AC-446-15449133-19',
+      icon: 'fa-solid fa-server',
+      pdfUrl: `${CERTS_BASE}virtual-machine-fundamental.pdf`
+    },
+    {
+      issuerHeader: 'AGUNA COURSE',
+      title: 'Simulasi Jaringan dengan PNETLab',
+      year: '2025',
+      date: '04 Agustus 2025',
+      credentialId: 'AC-205-42646055-11',
+      icon: 'fa-solid fa-diagram-project',
+      pdfUrl: `${CERTS_BASE}pnetlab-network.pdf`
+    }
+  ];
+
+  const total = certificates.length;
+  let activeIndex = 1; // Start with index 1 in the center so left (0) and right (2) are immediately visible
+
+  // Render Cards inside Stage
+  stage.innerHTML = certificates.map((c, idx) => `
+    <article class="cert-showcase-card" data-cert-idx="${idx}" aria-label="${c.title}">
+      <div class="cert-card-top">
+        <span class="cert-card-issuer">${c.issuerHeader}</span>
+        <span class="cert-card-open-hint"><i class="fa-solid fa-arrow-up-right-from-square"></i> Buka PDF</span>
+      </div>
+
+      <div class="cert-preview-mat">
+        <div class="cert-paper-doc">
+          <div class="cert-paper-ribbon">
+            <div class="cert-paper-seal">
+              <i class="${c.icon}"></i>
+            </div>
+          </div>
+
+          <div class="cert-paper-head">
+            <div class="cert-paper-org">
+              <i class="fa-solid fa-award"></i> ${c.issuerHeader}
+            </div>
+            <div class="cert-paper-type">CERTIFICATE OF COMPLETION</div>
+          </div>
+
+          <div class="cert-paper-body">
+            <div class="cert-paper-recipient">Rasya Arfian Akbar</div>
+            <div class="cert-paper-course">${c.title}</div>
+          </div>
+
+          <div class="cert-paper-foot">
+            <div>
+              <div>${c.date}</div>
+              <div>ID: ${c.credentialId}</div>
+            </div>
+            <div class="cert-paper-qr" aria-hidden="true">
+              <span></span><span></span><span></span>
+              <span></span><span></span><span></span>
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cert-card-bottom">
+        <h3 class="cert-card-title">${c.title}</h3>
+        <span class="cert-card-year">${c.year}</span>
+      </div>
+    </article>
+  `).join('');
+
+  // Render Pagination Pill-Dots
+  dotsWrap.innerHTML = certificates.map((c, idx) => `
+    <button type="button" class="cert-dot-btn" data-dot-idx="${idx}" aria-label="Pilih sertifikat ${c.title}"></button>
+  `).join('');
+
+  const cardEls = Array.from(stage.querySelectorAll('.cert-showcase-card'));
+  const dotEls = Array.from(dotsWrap.querySelectorAll('.cert-dot-btn'));
+
+  function updateCarousel() {
+    const prevIdx = (activeIndex - 1 + total) % total;
+    const nextIdx = (activeIndex + 1) % total;
+
+    cardEls.forEach((card, idx) => {
+      card.classList.remove('is-active', 'is-prev', 'is-next', 'is-far-left', 'is-far-right');
+
+      if (idx === activeIndex) {
+        card.classList.add('is-active');
+      } else if (idx === prevIdx) {
+        card.classList.add('is-prev');
+      } else if (idx === nextIdx) {
+        card.classList.add('is-next');
+      } else {
+        // Determine shortest direction around circular ring
+        const diff = (idx - activeIndex + total) % total;
+        if (diff > total / 2) {
+          card.classList.add('is-far-left');
+        } else {
+          card.classList.add('is-far-right');
+        }
+      }
+    });
+
+    dotEls.forEach((dot, idx) => {
+      dot.classList.toggle('active', idx === activeIndex);
+    });
+  }
+
+  // Click handler on cards: side cards slide to center; center card opens PDF
+  cardEls.forEach((card, idx) => {
+    card.addEventListener('click', () => {
+      if (idx === activeIndex) {
+        openPdfModal(certificates[idx].pdfUrl, certificates[idx].title);
+      } else {
+        activeIndex = idx;
+        updateCarousel();
+      }
+    });
+  });
+
+  // Click handler on pagination dots
+  dotEls.forEach((dot, idx) => {
+    dot.addEventListener('click', () => {
+      activeIndex = idx;
+      updateCarousel();
+    });
+  });
+
+  // Pointer drag / swipe support on stage
+  let dragStartX = null;
+  stage.addEventListener('pointerdown', (e) => {
+    dragStartX = e.clientX;
+  });
+
+  stage.addEventListener('pointerup', (e) => {
+    if (dragStartX === null) return;
+    const deltaX = e.clientX - dragStartX;
+    dragStartX = null;
+
+    if (Math.abs(deltaX) > 48) {
+      if (deltaX < 0) {
+        activeIndex = (activeIndex + 1) % total;
+      } else {
+        activeIndex = (activeIndex - 1 + total) % total;
+      }
+      updateCarousel();
     }
   });
-});
 
-// ============================================================
-// EXPOSE GLOBAL FUNCTIONS TO WINDOW
-// ============================================================
-window.openModal = openModal;
-window.closeModal = closeModal;
-window.openCvModal = openCvModal;
-window.closeCvModal = closeCvModal;
-window.switchCvView = switchCvView;
-window.openCertModal = openCertModal;
-window.closeCertModal = closeCertModal;
-window.copyText = copyText;
+  updateCarousel();
+}
 
-// ============================================================
-// INITIALIZATION
-// ============================================================
-loadProfileConfigFromSupabase();
-setupProfileRealtime();
-renderProjects(currentProjects);
-initInteractiveCards();
-loadProjectsFromSupabase();
-setupSupabaseRealtime();
 
-setupCvTriggers();
-loadCvConfigFromSupabase();
-setupCvRealtime();
