@@ -104,7 +104,7 @@ function initLanyardPhysics(dropFromTop = false) {
 
   if (!stage || !cardWrapper || !pathMain) return;
 
-  const CARD_W = 292;
+  let cardW = cardWrapper.offsetWidth || 292;
   const REST_ROPE_LEN = 135; // Resting distance from top mount to card clasp
 
   // Physics state
@@ -149,6 +149,7 @@ function initLanyardPhysics(dropFromTop = false) {
 
   function updateStageMetrics() {
     stageRect = stage.getBoundingClientRect();
+    cardW = cardWrapper.offsetWidth || 292;
     anchorX = stageRect.width / 2;
     if (!isDragging && Math.abs(velX) < 0.1 && Math.abs(velY) < 0.1) {
       posX = anchorX;
@@ -324,7 +325,7 @@ function initLanyardPhysics(dropFromTop = false) {
     if (pathStitch) pathStitch.setAttribute('d', dStr);
 
     // Position & 3D Transform the ID Card Wrapper
-    const cardLeft = posX - CARD_W / 2;
+    const cardLeft = posX - cardW / 2;
     const cardTop = posY - 12; // Align clasp with SVG strap end
     cardWrapper.style.transform = `translate3d(${cardLeft.toFixed(1)}px, ${cardTop.toFixed(1)}px, 0) rotateZ(${angleZ.toFixed(2)}deg) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg)`;
 
@@ -424,13 +425,29 @@ function initNavbarAndScroll() {
 
   // Mobile Menu Toggle
   if (mobileBtn && navLinksWrap) {
-    mobileBtn.addEventListener('click', () => {
-      navLinksWrap.classList.toggle('nav-open');
+    const setMenuOpen = (isOpen) => {
+      navLinksWrap.classList.toggle('nav-open', isOpen);
+      mobileBtn.setAttribute('aria-expanded', String(isOpen));
+      const icon = mobileBtn.querySelector('i');
+      if (icon) {
+        icon.classList.toggle('fa-bars', !isOpen);
+        icon.classList.toggle('fa-xmark', isOpen);
+      }
+    };
+
+    mobileBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setMenuOpen(!navLinksWrap.classList.contains('nav-open'));
     });
-    navLinks.forEach((link) => {
-      link.addEventListener('click', () => {
-        navLinksWrap.classList.remove('nav-open');
-      });
+
+    navLinksWrap.querySelectorAll('a').forEach((link) => {
+      link.addEventListener('click', () => setMenuOpen(false));
+    });
+
+    document.addEventListener('click', (e) => {
+      if (navLinksWrap.classList.contains('nav-open') && navbar && !navbar.contains(e.target)) {
+        setMenuOpen(false);
+      }
     });
   }
 
@@ -1278,11 +1295,71 @@ function initSkillTabs() {
 }
 
 /* ==========================================================================
-   PDF POPUP MODAL (TANPA TAB BARU)
+   PDF POPUP MODAL (TANPA TAB BARU + RENDER PDF.JS DI MOBILE)
    ========================================================================== */
+let pdfRenderToken = 0;
+
+function isMobilePdfViewerNeeded() {
+  const narrow = window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
+  const mobileUa = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '');
+  return narrow || mobileUa;
+}
+
+async function renderPdfWithCanvas(url, viewerEl, token) {
+  if (!window.pdfjsLib) throw new Error('PDF.js tidak tersedia');
+
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  const loadingTask = window.pdfjsLib.getDocument({
+    url,
+    withCredentials: false
+  });
+  const pdf = await loadingTask.promise;
+  if (token !== pdfRenderToken) return;
+
+  viewerEl.innerHTML = '';
+
+  const availWidth = Math.max(260, (viewerEl.clientWidth || window.innerWidth - 32) - 20);
+  const dpr = Math.min(window.devicePixelRatio || 1, 2.2);
+
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+    if (token !== pdfRenderToken) return;
+    const page = await pdf.getPage(pageNum);
+    if (token !== pdfRenderToken) return;
+
+    const baseViewport = page.getViewport({ scale: 1 });
+    const cssScale = availWidth / baseViewport.width;
+    const viewport = page.getViewport({ scale: cssScale * dpr });
+
+    const pageWrap = document.createElement('div');
+    pageWrap.className = 'pdf-canvas-page';
+
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+    canvas.style.width = `${Math.floor(baseViewport.width * cssScale)}px`;
+    canvas.style.height = `${Math.floor(baseViewport.height * cssScale)}px`;
+
+    const ctx = canvas.getContext('2d');
+    pageWrap.appendChild(canvas);
+
+    if (pdf.numPages > 1) {
+      const badge = document.createElement('span');
+      badge.className = 'pdf-page-badge';
+      badge.textContent = `Halaman ${pageNum} / ${pdf.numPages}`;
+      pageWrap.appendChild(badge);
+    }
+
+    viewerEl.appendChild(pageWrap);
+    await page.render({ canvasContext: ctx, viewport }).promise;
+  }
+}
+
 function openPdfModal(url, name) {
   const modal = document.getElementById('pdf-modal');
   const frame = document.getElementById('pdf-modal-frame');
+  const canvasViewer = document.getElementById('pdf-canvas-viewer');
   const nameEl = document.getElementById('pdf-modal-name');
   const dl = document.getElementById('pdf-modal-download');
   if (!modal || !frame) return;
@@ -1293,31 +1370,80 @@ function openPdfModal(url, name) {
   const sep = cleanUrl.includes('?') ? '&' : '?';
   const freshUrl = `${cleanUrl}${sep}_t=${Date.now()}`;
 
-  frame.src = 'about:blank';
-  setTimeout(() => {
-    frame.src = freshUrl;
-  }, 20);
-
   if (nameEl) nameEl.textContent = name || 'Dokumen PDF';
   if (dl) {
     dl.href = freshUrl;
+    dl.target = '_blank';
+    dl.rel = 'noopener';
     const downloadFileName = (name || 'Dokumen')
       .replace(/[^a-zA-Z0-9_\-\.]/g, '_')
       .replace(/_{2,}/g, '_');
     dl.setAttribute('download', downloadFileName.endsWith('.pdf') ? downloadFileName : `${downloadFileName}.pdf`);
   }
+
   modal.classList.add('is-open');
   modal.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
+
+  const token = ++pdfRenderToken;
+  const useCanvasViewer = isMobilePdfViewerNeeded() && canvasViewer && typeof window.pdfjsLib !== 'undefined';
+
+  if (useCanvasViewer) {
+    frame.style.display = 'none';
+    frame.src = 'about:blank';
+    canvasViewer.style.display = 'flex';
+    canvasViewer.scrollTop = 0;
+    canvasViewer.innerHTML = `
+      <div class="pdf-viewer-status">
+        <i class="fa-solid fa-circle-notch fa-spin"></i>
+        <span>Memuat pratinjau dokumen...</span>
+      </div>
+    `;
+
+    // Tunggu 1 frame agar lebar container modal sudah terhitung akurat
+    requestAnimationFrame(() => {
+      renderPdfWithCanvas(freshUrl, canvasViewer, token).catch(() => {
+        if (token !== pdfRenderToken) return;
+        canvasViewer.innerHTML = `
+          <div class="pdf-viewer-fallback">
+            <i class="fa-regular fa-file-pdf"></i>
+            <p>Pratinjau langsung tidak tersedia pada perangkat ini.</p>
+            <a href="${escHtml(freshUrl)}" target="_blank" rel="noopener" class="pdf-fallback-open-btn">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka Dokumen PDF
+            </a>
+          </div>
+        `;
+      });
+    });
+  } else {
+    if (canvasViewer) {
+      canvasViewer.style.display = 'none';
+      canvasViewer.innerHTML = '';
+    }
+    frame.style.display = 'block';
+    frame.src = 'about:blank';
+    setTimeout(() => {
+      if (token === pdfRenderToken) frame.src = freshUrl;
+    }, 20);
+  }
 }
 
 function closePdfModal() {
   const modal = document.getElementById('pdf-modal');
   const frame = document.getElementById('pdf-modal-frame');
+  const canvasViewer = document.getElementById('pdf-canvas-viewer');
   if (!modal) return;
+  pdfRenderToken++;
   modal.classList.remove('is-open');
   modal.setAttribute('aria-hidden', 'true');
-  if (frame) frame.src = 'about:blank';
+  if (frame) {
+    frame.src = 'about:blank';
+    frame.style.display = '';
+  }
+  if (canvasViewer) {
+    canvasViewer.innerHTML = '';
+    canvasViewer.style.display = 'none';
+  }
   document.body.style.overflow = '';
 }
 
@@ -1573,6 +1699,15 @@ function initCertShowcaseCarousel() {
 
   const cardEls = Array.from(stage.querySelectorAll('.cert-showcase-card'));
   const dotEls = Array.from(dotsWrap.querySelectorAll('.cert-dot-btn'));
+  const prevBtn = document.getElementById('cert-btn-prev');
+  const nextBtn = document.getElementById('cert-btn-next');
+
+  let suppressClickUntil = 0;
+
+  function goToIndex(nextIdx) {
+    activeIndex = ((nextIdx % total) + total) % total;
+    updateCarousel();
+  }
 
   function updateCarousel() {
     const prevIdx = (activeIndex - 1 + total) % total;
@@ -1600,48 +1735,148 @@ function initCertShowcaseCarousel() {
 
     dotEls.forEach((dot, idx) => {
       dot.classList.toggle('active', idx === activeIndex);
+      dot.setAttribute('aria-selected', String(idx === activeIndex));
     });
   }
 
   // Click handler on cards: side cards slide to center; center card opens PDF
   cardEls.forEach((card, idx) => {
-    card.addEventListener('click', () => {
+    card.addEventListener('click', (e) => {
+      if (Date.now() < suppressClickUntil) {
+        e.preventDefault();
+        return;
+      }
       if (idx === activeIndex) {
         openPdfModal(certificates[idx].pdfUrl, certificates[idx].title);
       } else {
-        activeIndex = idx;
-        updateCarousel();
+        goToIndex(idx);
       }
     });
   });
 
-  // Click handler on pagination dots
+  // Click handler on pagination dots & prev/next arrows
   dotEls.forEach((dot, idx) => {
-    dot.addEventListener('click', () => {
-      activeIndex = idx;
-      updateCarousel();
-    });
+    dot.addEventListener('click', () => goToIndex(idx));
   });
 
-  // Pointer drag / swipe support on stage
-  let dragStartX = null;
-  stage.addEventListener('pointerdown', (e) => {
-    dragStartX = e.clientX;
-  });
+  if (prevBtn) prevBtn.addEventListener('click', () => goToIndex(activeIndex - 1));
+  if (nextBtn) nextBtn.addEventListener('click', () => goToIndex(activeIndex + 1));
 
-  stage.addEventListener('pointerup', (e) => {
-    if (dragStartX === null) return;
-    const deltaX = e.clientX - dragStartX;
-    dragStartX = null;
+  // Native Touch Swipe (Mobile Finger Drag with Live Follow + Direction Lock)
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchStartTime = 0;
+  let touchDeltaX = 0;
+  let touchMode = null; // 'horizontal' | 'vertical' | null
+  let lastTouchTimestamp = 0;
 
-    if (Math.abs(deltaX) > 48) {
-      if (deltaX < 0) {
-        activeIndex = (activeIndex + 1) % total;
+  stage.addEventListener('touchstart', (e) => {
+    if (!e.touches || e.touches.length !== 1) return;
+    lastTouchTimestamp = Date.now();
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchStartTime = Date.now();
+    touchDeltaX = 0;
+    touchMode = null;
+  }, { passive: true });
+
+  stage.addEventListener('touchmove', (e) => {
+    if (!e.touches || e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - touchStartX;
+    const dy = e.touches[0].clientY - touchStartY;
+
+    if (!touchMode && Math.hypot(dx, dy) > 8) {
+      if (Math.abs(dx) > Math.abs(dy) * 1.1) {
+        touchMode = 'horizontal';
+        stage.classList.add('is-dragging-carousel');
       } else {
-        activeIndex = (activeIndex - 1 + total) % total;
+        touchMode = 'vertical';
       }
-      updateCarousel();
     }
+
+    if (touchMode === 'horizontal') {
+      e.preventDefault();
+      touchDeltaX = dx;
+      const clamped = Math.max(-180, Math.min(180, dx * 0.72));
+      stage.style.setProperty('--cert-drag-x', `${clamped.toFixed(1)}px`);
+      stage.style.setProperty('--cert-drag-side', `${(clamped * 0.72).toFixed(1)}px`);
+    }
+  }, { passive: false });
+
+  function finishTouchSwipe() {
+    lastTouchTimestamp = Date.now();
+    stage.classList.remove('is-dragging-carousel');
+    stage.style.setProperty('--cert-drag-x', '0px');
+    stage.style.setProperty('--cert-drag-side', '0px');
+
+    if (touchMode === 'horizontal') {
+      const elapsed = Date.now() - touchStartTime;
+      const isQuickFlick = Math.abs(touchDeltaX) > 22 && elapsed < 260;
+      if (Math.abs(touchDeltaX) > 40 || isQuickFlick) {
+        if (touchDeltaX < 0) {
+          goToIndex(activeIndex + 1);
+        } else {
+          goToIndex(activeIndex - 1);
+        }
+      }
+      suppressClickUntil = Date.now() + 380;
+    }
+
+    touchMode = null;
+    touchDeltaX = 0;
+  }
+
+  stage.addEventListener('touchend', finishTouchSwipe, { passive: true });
+  stage.addEventListener('touchcancel', finishTouchSwipe, { passive: true });
+
+  // Mouse drag support on desktop (ignored right after touch events)
+  let mouseDown = false;
+  let mouseStartX = 0;
+  let mouseDeltaX = 0;
+  let mouseDragged = false;
+
+  stage.addEventListener('mousedown', (e) => {
+    if (Date.now() - lastTouchTimestamp < 600) return;
+    if (e.button !== 0) return;
+    mouseDown = true;
+    mouseStartX = e.clientX;
+    mouseDeltaX = 0;
+    mouseDragged = false;
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!mouseDown) return;
+    mouseDeltaX = e.clientX - mouseStartX;
+    if (!mouseDragged && Math.abs(mouseDeltaX) > 10) {
+      mouseDragged = true;
+      stage.classList.add('is-dragging-carousel');
+    }
+    if (mouseDragged) {
+      const clamped = Math.max(-180, Math.min(180, mouseDeltaX * 0.65));
+      stage.style.setProperty('--cert-drag-x', `${clamped.toFixed(1)}px`);
+      stage.style.setProperty('--cert-drag-side', `${(clamped * 0.72).toFixed(1)}px`);
+    }
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (!mouseDown) return;
+    mouseDown = false;
+    stage.classList.remove('is-dragging-carousel');
+    stage.style.setProperty('--cert-drag-x', '0px');
+    stage.style.setProperty('--cert-drag-side', '0px');
+
+    if (mouseDragged) {
+      if (Math.abs(mouseDeltaX) > 45) {
+        if (mouseDeltaX < 0) {
+          goToIndex(activeIndex + 1);
+        } else {
+          goToIndex(activeIndex - 1);
+        }
+      }
+      suppressClickUntil = Date.now() + 300;
+    }
+    mouseDragged = false;
+    mouseDeltaX = 0;
   });
 
   updateCarousel();
